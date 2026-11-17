@@ -10,7 +10,7 @@ What runs in production:
 |---|---|---|---|
 | **web** | Dockerfile default (uvicorn) | yes, `app.yourdomain.com` | 1+ |
 | **worker** | `celery -A config worker -l info --concurrency 2` | no | 1+ |
-| **beat** | `celery -A config beat -l info` | no | **exactly 1** |
+| **beat** | `celery -A config beat -l info` | no | **exactly 1** (runs agent schedules) |
 | **Postgres** | Railway database | no | — |
 | **Redis** | Railway database | no | — |
 
@@ -67,10 +67,15 @@ ANTHROPIC_API_KEY=<from console.anthropic.com — agents can't run without it>
 ALLOWED_MODELS=claude-opus-5-5,claude-sonnet-5-5,claude-haiku-5-5
 DEFAULT_MODEL=claude-opus-5-5
 DEFAULT_DAILY_SPEND_LIMIT_USD=10
+TRIGGERS_AUTO_SYNC_WEBHOOKS=true
 ```
 
 - `${{Postgres.DATABASE_URL}}` is Railway's syntax for "use the database's URL".
   Type it exactly like that.
+- `APP_URL` is also the address Shopify sends agent events to: each store is
+  subscribed to `APP_URL/shopify/webhooks/` for the events its agents use. If you
+  change the domain later, re-save each installation (or reinstall) so the
+  subscriptions move to the new address.
 - `DJANGO_SETTINGS_MODULE` is already `config.settings.prod` in the Docker image.
   Production refuses to start if `DJANGO_SECRET_KEY`, `ENCRYPTION_KEY` or the
   Shopify key/secret are missing. That's deliberate, so a misconfiguration can't
@@ -94,7 +99,7 @@ For each one: **+ New → GitHub Repo → `brainstreaminfo/agentdock`**, then in
 | Service name | Custom start command | Notes |
 |---|---|---|
 | `worker` | `celery -A config worker -l info --concurrency 4` | no domain; runs every agent, so scale it up as usage grows |
-| `beat` | `celery -A config beat -l info` | no domain, **never more than 1 replica** (2 would run every schedule twice) |
+| `beat` | `celery -A config beat -l info` | no domain, **never more than 1 replica** (2 would run every schedule twice). Without it, scheduled agents never run |
 
 Leave the healthcheck path empty for these two, since they don't serve HTTP.
 
@@ -131,6 +136,13 @@ railway ssh --service web      # opens a shell inside the running web container
 python manage.py createsuperuser
 ```
 
+Optionally, load the 3 example agents to clone in the Studio (they are never
+shown to merchants):
+
+```bash
+python manage.py seed_agent_templates
+```
+
 ## 8. Check that it works
 
 1. `https://app.yourdomain.com/healthz/` → `{"ok": true}`
@@ -139,8 +151,23 @@ python manage.py createsuperuser
    Install). You should land on `https://app.yourdomain.com/s/<id>/welcome/`.
 4. In `railway ssh --service web`:
    `python manage.py check_shop your-dev-store.myshopify.com` → green ticks.
-5. Uninstall the app from the dev store. Within seconds, Django Admin →
-   **Webhook events** should show `app/uninstalled` as PROCESSED.
+5. **An agent end to end** (needs `ANTHROPIC_API_KEY`; costs a few cents):
+   - Studio (`/studio/`) → clone a template, set **Availability → Public**, publish.
+   - In the store's app: **Marketplace** → the agent → **Install**. If it needs
+     more access, Shopify asks first and sends you back to the settings form.
+   - **My agents** → the agent → **Run now** → the run page fills in live.
+   - If it has a schedule: Django Admin → **Periodic tasks** shows
+     `agent-installation-<id>` with the store's timezone.
+   - If it uses store events (e.g. `orders/create`): `check_shop` lists the new
+     webhook subscription. Create a test order and look in Django Admin →
+     **Webhook events** and in **Runs**.
+6. Uninstall the app from the dev store. Within seconds, Django Admin →
+   **Webhook events** should show `app/uninstalled` as PROCESSED, and the
+   store's periodic tasks are gone.
+
+Development stores receive order and customer events without Shopify's
+"protected customer data" approval. Real merchant stores need it: apply in the
+Partner Dashboard before launch (see `docs/DECISIONS.md` #27).
 
 ## 9. Everyday: shipping a change
 
