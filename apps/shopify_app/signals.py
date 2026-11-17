@@ -11,6 +11,7 @@ from django.dispatch import Signal
 shop_installed = Signal()  # kwargs: shop, user, is_new_install
 shop_uninstalled = Signal()  # kwargs: shop
 shop_scopes_updated = Signal()  # kwargs: shop, scopes
+shop_timezone_changed = Signal()  # kwargs: shop
 customers_redact_requested = Signal()  # kwargs: shop, payload
 customers_data_requested = Signal()  # kwargs: shop, payload
 shop_redact_requested = Signal()  # kwargs: shop  (sent just before the shop is deleted)

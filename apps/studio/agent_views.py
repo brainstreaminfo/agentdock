@@ -59,7 +59,7 @@ PAGES = [
 
 
 def _agent(slug: str) -> AgentDefinition:
-    return get_object_or_404(AgentDefinition, slug=slug)
+    return get_object_or_404(AgentDefinition, slug=slug, is_system=False)
 
 
 def _ctx(agent: AgentDefinition, active: str, **extra: Any) -> dict[str, Any]:
@@ -82,7 +82,9 @@ def _ctx(agent: AgentDefinition, active: str, **extra: Any) -> dict[str, Any]:
 def dashboard(request: HttpRequest) -> HttpResponse:
     stats = agent_stats()
     agents = []
-    for agent in AgentDefinition.objects.filter(is_template=False).order_by("name"):
+    for agent in AgentDefinition.objects.filter(is_template=False, is_system=False).order_by(
+        "name"
+    ):
         s = stats.get(agent.slug, {})
         agents.append(
             {

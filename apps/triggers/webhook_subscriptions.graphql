@@ -1,0 +1,39 @@
+# Per-shop webhook subscriptions for agent event triggers (apps/triggers/subscriptions.py).
+# App lifecycle and compliance topics are NOT managed here: they are declared in
+# shopify.app.toml.
+
+query AgentWebhookSubscriptions($uri: String!) {
+  webhookSubscriptions(first: 100, uri: $uri) {
+    nodes {
+      id
+      topic
+      uri
+    }
+  }
+}
+
+mutation CreateAgentWebhookSubscription(
+  $topic: WebhookSubscriptionTopic!
+  $subscription: WebhookSubscriptionInput!
+) {
+  webhookSubscriptionCreate(topic: $topic, webhookSubscription: $subscription) {
+    webhookSubscription {
+      id
+      topic
+    }
+    userErrors {
+      field
+      message
+    }
+  }
+}
+
+mutation DeleteAgentWebhookSubscription($id: ID!) {
+  webhookSubscriptionDelete(id: $id) {
+    deletedWebhookSubscriptionId
+    userErrors {
+      field
+      message
+    }
+  }
+}

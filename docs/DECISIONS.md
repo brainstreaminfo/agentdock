@@ -464,3 +464,103 @@ probably need the Billing API. That gets decided in Phase 6.
 69. **Plans are placeholders in `apps/billing/plans.py`** (Starter, Growth, Pro,
     spec §11), so agents can be assigned to plans now. Billing and enforcement
     arrive in Phase 6.
+
+---
+
+## Phase 5 — Marketplace & installs (2026-11-17)
+
+70. **New apps:** `apps/marketplace` (Marketplace, install flow, My agents,
+    product/collection picker) and `apps/triggers` (schedules, Shopify events).
+    The Runs list and Approvals queue live in `apps/runs`; Alerts and Brand memory
+    in `apps/dashboard`. Install rules are plain functions in
+    `apps/marketplace/installs.py`, so views stay thin and tests call them directly.
+
+71. **Who sees which agent:** published, not a template, not a system agent, and
+    PUBLIC, BETA (shown with a "Beta" badge to every shop) or PRIVATE with the shop
+    in `allowed_shops`.
+
+72. **Install flow = spec §8.3, with the session as the bookmark.** Missing scopes
+    → "needs access to…" page → *Continue* stores `pending_agent_install` in the
+    session and sends the merchant to `/shopify/auth/?scopes=<missing>&next=<install
+    page>` (our auth view asks Shopify for the union with what's granted). The
+    callback redirects to `next`, and the install page now shows the settings form.
+    If the merchant declined some access in Shopify, the page says so instead of
+    looping. Installing, configuring, updating and approving need ADMIN or OWNER;
+    members can browse, chat and look.
+
+73. **Plan checks go through `apps/billing/entitlements.py`, which allows
+    everything until Phase 6.** The install flow already handles a refusal (an
+    upsell page), so Phase 6 only changes those function bodies.
+
+74. **Uninstalling an agent deletes the installation and its chats**, but keeps
+    runs and approvals (their links are `SET NULL`), so history and undo still work.
+    The confirmation dialog says this. Reinstalling starts with fresh settings.
+
+75. **Updating to a version that needs new scopes** sends the merchant through
+    OAuth with `next` = the agent page; they click *Update* again after returning.
+    On update, settings whose keys no longer exist are dropped. If the remaining
+    values don't fit the new form, the defaults are used, and an autonomy level
+    the new version doesn't allow falls back to its default.
+
+76. **Schedules = one `django-celery-beat` `PeriodicTask` per installation**
+    (`agent-installation-<id>`). Its crontab carries the shop's timezone. A
+    `post_save`/`post_delete` receiver on `AgentInstallation` keeps it in sync, so
+    every path (install, pause, settings, auto-upgrade from the Studio, uninstall)
+    is covered without each caller remembering. A `shop/update` that changes the
+    timezone re-syncs too (new signal `shop_timezone_changed`).
+    "Next run" is computed by our own small function, because Celery's
+    `remaining_estimate` ignores per-schedule timezones. Like Celery, it requires
+    day-of-month AND day-of-week to match.
+
+77. **Event subscriptions are per shop**, as decided in #7, not app-wide: the shop
+    is subscribed to the topics its *enabled* agents use and whose read scope it
+    granted. `sync_webhook_subscriptions` creates and deletes only agent topics at
+    our URL; lifecycle and compliance topics stay in `shopify.app.toml`. It runs in
+    Celery after the change commits. Tests switch this off
+    (`TRIGGERS_AUTO_SYNC_WEBHOOKS=False`) so they never reach Shopify.
+
+78. **Event routing:** the webhook fallback (`apps/triggers/router.py`) starts an
+    EVENT run per listening installation. The payload goes into `Run.input` with
+    emails and phones masked. A retried webhook can't start a second run (checked
+    by `webhook_event_id`). The fallback now returns whether it handled the event,
+    so topics nobody listens to stay IGNORED.
+    - **Debounce** (`products/update`, `inventory_levels/update`,
+      `customers/update`) is *trailing*: each event stores its id under a key per
+      installation and resource, and a delayed task starts the run only if it is
+      still the latest. So a burst of edits gives one run after the last edit.
+    - **Busy agent:** an event run that finds its installation's run lock taken
+      retries every 30 s for up to 10 minutes instead of being dropped. A scheduled
+      run in the same situation is skipped (the next tick comes anyway).
+
+79. **App uninstalled** → schedules removed and queued runs cancelled. The Celery
+    task only executes runs still QUEUED, so no revoke is needed, and Shopify
+    deletes webhook subscriptions itself. Installations keep `enabled`, so a
+    re-install (`shop_installed`) restores schedules and subscriptions.
+
+80. **"My Team" is a hidden system agent** (`AgentDefinition.is_system`,
+    slug `my-team`), created on first use by `orchestrator.team_version()`. That way
+    it's an ordinary version for the runtime (model, limits, trace, cost) with no
+    special cases in `Run`. Hidden from the Studio and the Marketplace; its model
+    or instructions can be changed in Django Admin.
+    - Its tools are built at run time: one `delegate_to_<agent-slug>` per
+      installed, enabled, chat-enabled agent, described with the tagline,
+      description and "what it can do".
+    - A delegation runs the agent **inline as a child run** (`parent_run`, same
+      Celery worker, the child's own autonomy and limits) with only the task text.
+      The child's reply goes back to the orchestrator framed as untrusted data.
+    - Changes the child proposes appear as approval cards in the My Team chat.
+    - Child runs can't delegate further (only the orchestrator has delegate tools).
+    - Child costs are recorded on the child runs, so the per-shop daily limit
+      covers them.
+
+81. **Product/collection picker** (`components/picker.html`): Alpine keeps the
+    picked list; HTMX searches through the normal `products.search` /
+    `collections.list` tools (same scopes and sanitising). It still submits
+    comma-separated ids, so stored settings are unchanged from Phase 4. Titles
+    aren't stored, so items picked earlier show their numeric id.
+
+82. **Runs list and dashboard hide Studio runs** (playground, tests, tool
+    tests), the same rule as Studio analytics (#67). A merchant's trace page
+    refreshes every 3 s while the run is live. For runs without a chat (schedule,
+    event, Run now), it shows the run's approval cards and links to the runs My
+    Team delegated to.

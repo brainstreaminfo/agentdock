@@ -10,8 +10,9 @@ Add a handler:
     @handler("shop/update")
     def on_shop_update(event: WebhookEvent) -> None: ...
 
-Topics with no handler are marked IGNORED. In Phase 5 the trigger router hooks
-in here to start agent runs for event-triggered agents (see `register_fallback`).
+Topics with no handler are marked IGNORED. The trigger router
+(`apps/triggers/router.py`) hooks in with `register_fallback` to start runs of
+event-triggered agents; it returns True when it started something.
 """
 
 from __future__ import annotations
@@ -29,8 +30,9 @@ from .models import WebhookEvent
 log = get_logger(__name__)
 
 Handler = Callable[[WebhookEvent], None]
+Fallback = Callable[[WebhookEvent], bool]  # returns True if it handled the event
 HANDLERS: dict[str, Handler] = {}
-_fallbacks: list[Handler] = []
+_fallbacks: list[Fallback] = []
 
 # Compliance topics Shopify requires every App Store app to handle.
 COMPLIANCE_TOPICS = ("customers/data_request", "customers/redact", "shop/redact")
@@ -44,9 +46,10 @@ def handler(topic: str) -> Callable[[Handler], Handler]:
     return decorator
 
 
-def register_fallback(func: Handler) -> Handler:
+def register_fallback(func: Fallback) -> Fallback:
     """Called for every event (after the topic handler). Used by the trigger router."""
-    _fallbacks.append(func)
+    if func not in _fallbacks:
+        _fallbacks.append(func)
     return func
 
 
@@ -57,8 +60,7 @@ def dispatch(event: WebhookEvent) -> bool:
         HANDLERS[event.topic](event)
         handled = True
     for fallback in _fallbacks:
-        fallback(event)
-        handled = True
+        handled = fallback(event) or handled
     return handled
 
 
@@ -89,12 +91,16 @@ def on_shop_update(event: WebhookEvent) -> None:
     shop, p = event.shop, event.payload
     if shop is None:
         return
+    old_timezone = shop.timezone
     shop.name = p.get("name") or shop.name
     shop.email = p.get("email") or shop.email
     shop.currency = p.get("currency") or shop.currency
     shop.timezone = p.get("iana_timezone") or shop.timezone
     shop.plan_name = p.get("plan_display_name") or shop.plan_name
     shop.save()
+    if shop.timezone != old_timezone:
+        # Agent schedules run in the shop's timezone: let the triggers app re-sync them.
+        signals.shop_timezone_changed.send(sender=Shop, shop=shop)
 
 
 # ---------------------------------------------------------------- compliance (GDPR)

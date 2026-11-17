@@ -18,6 +18,7 @@ from typing import Any
 
 import markdown as md
 import nh3
+from django.db.models import Q
 from django.template.loader import render_to_string
 from django.utils.safestring import SafeString, mark_safe
 
@@ -73,6 +74,11 @@ def tool_label(key: str) -> str:
     from apps.tools.models import ToolDefinition
     from apps.tools.registry import registry
 
+    if key.startswith("delegate:"):  # My Team delegation (apps/agents/orchestrator.py)
+        from apps.agents.models import AgentDefinition
+
+        agent = AgentDefinition.objects.filter(slug=key.removeprefix("delegate:")).first()
+        return f"Asked {agent.name if agent else key.removeprefix('delegate:')}"
     spec = registry.get(key)
     if spec is not None:
         return spec.name
@@ -104,7 +110,10 @@ def build_items(run: Run) -> list[dict[str, Any]]:
     """Display items for the assistant side of one chat turn."""
     items: list[dict[str, Any]] = []
     tool_calls: dict[str, dict[str, Any]] = {}
-    proposals = {str(p.uuid): p for p in ActionProposal.objects.filter(run=run)}
+    # Also the changes proposed by agents My Team delegated to (child runs).
+    proposals = {
+        str(p.uuid): p for p in ActionProposal.objects.filter(Q(run=run) | Q(run__parent_run=run))
+    }
 
     for message in run.messages.order_by("id"):
         if message.role == "assistant" and isinstance(message.content, list):
@@ -113,7 +122,7 @@ def build_items(run: Run) -> list[dict[str, Any]]:
                 if kind == "text" and block.get("text", "").strip():
                     items.append({"kind": "text", "html": render_markdown(block["text"])})
                 elif kind == "tool_use":
-                    key = block.get("name", "").replace("__", ".")
+                    key = _key_from_api_name(block.get("name", ""))
                     tool_calls[block.get("id", "")] = {"key": key}
         elif message.role == "user" and isinstance(message.content, list):
             for block in message.content:
@@ -145,6 +154,11 @@ def _result_items(
         }
     ]
     data = result.get("data") or {}
+    if key.startswith("delegate:") and isinstance(data, dict):
+        for uuid in data.get("proposals") or []:
+            if str(uuid) in proposals:
+                items.append({"kind": "proposal", "proposal": proposals[str(uuid)]})
+        return items
     if status == "pending_approval":
         proposal = proposals.get(str(result.get("proposal_id")))
         if proposal is not None:
@@ -171,6 +185,16 @@ def _result_items(
         elif render == "reply_draft":
             items.append({"kind": "draft", "draft": data})
     return items
+
+
+def _key_from_api_name(name: str) -> str:
+    """API tool name -> our key: products__search -> products.search,
+    delegate_to_sales-analyst -> delegate:sales-analyst."""
+    from apps.agents.orchestrator import DELEGATE_PREFIX, DELEGATE_STEP_PREFIX
+
+    if name.startswith(DELEGATE_PREFIX):
+        return DELEGATE_STEP_PREFIX + name.removeprefix(DELEGATE_PREFIX)
+    return name.replace("__", ".")
 
 
 def _chart_config(data: dict[str, Any]) -> dict[str, Any]:

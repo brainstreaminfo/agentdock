@@ -1,0 +1,36 @@
+{% extends "layouts/app.html" %}{% load ui %}
+{% block title %}My agents · {{ current_shop }}{% endblock %}
+{% block content %}
+<div class="flex items-start justify-between gap-4">
+  {% include "components/page_header.html" with title="My agents" subtitle="Agents installed in your store." %}
+  <a href="{% url 'marketplace:home' current_shop.pk %}" class="btn btn-secondary">{% icon "plus" %} Add agents</a>
+</div>
+{% if rows %}
+<div class="card overflow-x-auto">
+  <table class="table">
+    <thead><tr><th>Agent</th><th>Status</th><th>Last run</th><th>Next scheduled run</th><th>Waiting for approval</th><th></th></tr></thead>
+    <tbody>
+      {% for row in rows %}{% with inst=row.inst %}
+      <tr>
+        <td>
+          <a href="{% url 'marketplace:agent' current_shop.pk inst.pk %}" class="flex items-center gap-2 font-medium">{% icon inst.agent.icon %} {{ inst.agent.name }}</a>
+          <span class="text-xs text-zinc-500">{{ inst.version.label }}</span>
+          {% if row.update %}<span class="badge badge-brand ml-1">Update available{% if row.update_needs_scopes %}: needs approval{% endif %}</span>{% endif %}
+        </td>
+        <td>{% if inst.enabled %}<span class="badge badge-green">Active</span>{% else %}<span class="badge badge-gray">Paused</span>{% endif %}</td>
+        <td class="text-sm">{% if inst.last_run_at %}{{ inst.last_run_at|timesince }} ago{% else %}—{% endif %}</td>
+        <td class="text-sm">{% if row.next_run %}{{ row.next_run|date:"D j M, H:i" }}{% else %}—{% endif %}</td>
+        <td>{% if row.pending %}<a href="{% url 'runs:approvals' current_shop.pk %}" class="badge badge-yellow">{{ row.pending }}</a>{% else %}<span class="text-sm text-zinc-400">0</span>{% endif %}</td>
+        <td class="text-right"><a href="{% url 'marketplace:agent' current_shop.pk inst.pk %}" class="btn btn-ghost btn-sm">Manage</a></td>
+      </tr>
+      {% endwith %}{% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="card">
+  {% include "components/empty_state.html" with icon="bot" title="No agents installed" text="Browse the Marketplace to add your first agent." %}
+  <div class="pb-8 text-center"><a href="{% url 'marketplace:home' current_shop.pk %}" class="btn btn-primary">Open the Marketplace</a></div>
+</div>
+{% endif %}
+{% endblock %}

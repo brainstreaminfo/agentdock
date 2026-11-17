@@ -1,0 +1,44 @@
+{% extends "layouts/app.html" %}{% load ui %}
+{% block title %}Marketplace · {{ current_shop }}{% endblock %}
+{% block content %}
+{% include "components/page_header.html" with title="Marketplace" subtitle="AI agents you can add to your store. Each one says exactly what it can access." %}
+
+<form method="get" class="mb-6 flex flex-wrap items-center gap-2">
+  <div class="relative min-w-60 flex-1">
+    <input type="search" name="q" value="{{ query }}" class="input" placeholder="Search agents…">
+  </div>
+  {% if category %}<input type="hidden" name="category" value="{{ category }}">{% endif %}
+  <button class="btn btn-secondary" type="submit">{% icon "search" %} Search</button>
+</form>
+
+{% if categories %}
+<div class="mb-6 flex flex-wrap gap-2">
+  <a href="?{% if query %}q={{ query|urlencode }}{% endif %}" class="badge {% if not category %}badge-brand{% else %}badge-gray{% endif %}">All</a>
+  {% for c in categories %}
+  <a href="?category={{ c|urlencode }}{% if query %}&q={{ query|urlencode }}{% endif %}" class="badge {% if c == category %}badge-brand{% else %}badge-gray{% endif %}">{{ c }}</a>
+  {% endfor %}
+</div>
+{% endif %}
+
+{% if featured %}
+<h2 class="mb-3 text-sm font-semibold text-zinc-500">Featured</h2>
+<div class="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+  {% for agent in featured %}{% include "marketplace/_agent_card.html" %}{% endfor %}
+</div>
+{% if agents %}<h2 class="mb-3 text-sm font-semibold text-zinc-500">All agents</h2>{% endif %}
+{% endif %}
+
+{% if agents %}
+<div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+  {% for agent in agents %}{% include "marketplace/_agent_card.html" %}{% endfor %}
+</div>
+{% elif not featured %}
+<div class="card">
+  {% if query or category %}
+    {% include "components/empty_state.html" with icon="search-x" title="No agents match" text="Try another search or category." %}
+  {% else %}
+    {% include "components/empty_state.html" with icon="store" title="No agents yet" text="New agents will appear here as soon as they're published." %}
+  {% endif %}
+</div>
+{% endif %}
+{% endblock %}

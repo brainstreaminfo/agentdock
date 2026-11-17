@@ -44,7 +44,7 @@ from apps.shops.models import Shop
 from apps.tools.context import ToolContext
 from apps.tools.executor import execute_tool
 
-from . import events
+from . import events, orchestrator
 from .llm import LLMError, LLMProvider, content_for_history, cost_usd, get_provider
 from .models import AgentInstallation, AgentVersion
 from .prompting import build_system_prompt, build_tools
@@ -53,6 +53,11 @@ log = get_logger(__name__)
 
 LOCKED_TRIGGERS = (Run.Trigger.SCHEDULE, Run.Trigger.EVENT)
 MIN_TOKENS_PER_TURN = 1024
+
+
+def installation_lock_key(installation_id: int | None) -> str:
+    """Cache key held while a scheduled/event run of this installation executes."""
+    return f"run-lock:installation:{installation_id}"
 
 
 class RunRefused(Exception):
@@ -135,7 +140,7 @@ def execute_run(run: Run, provider: LLMProvider | None = None) -> Run:
     """Run the agent loop for a QUEUED run. Never raises: failures are saved on the run."""
     bind_context(run_id=run.pk, shop_id=run.shop_id, agent=run.agent_slug)
     provider = provider or get_provider()
-    lock_key = f"run-lock:installation:{run.installation_id}"
+    lock_key = installation_lock_key(run.installation_id)
     locked = False
 
     try:
@@ -220,6 +225,10 @@ def _loop(run: Run, provider: LLMProvider, state: _State) -> None:
     )
     state.warnings.extend(prompt.warnings)
     tools, tool_names = build_tools(version)
+    # "My Team": the tools are the shop's agents (delegate_to_<slug>), see orchestrator.py.
+    delegates: dict[str, int] = {}
+    if orchestrator.is_team(version):
+        tools, delegates = orchestrator.delegate_tools(run.shop)
     ctx = ToolContext(
         shop=run.shop,
         run=run,
@@ -304,6 +313,9 @@ def _loop(run: Run, provider: LLMProvider, state: _State) -> None:
 
         results = []
         for block in tool_uses:
+            if block["name"] in delegates:
+                results.append(_delegate(run, block, delegates[block["name"]]))
+                continue
             key = tool_names.get(block["name"])
             events.emit(run.pk, "tool", _tool_event(block, key, "running"))
             if key is None:
@@ -331,6 +343,36 @@ def _loop(run: Run, provider: LLMProvider, state: _State) -> None:
         events.emit(run.pk, "status", {"text": "Thinking…"})
     else:
         state.limit_reached = "max_steps"
+
+
+def _delegate(run: Run, block: dict[str, Any], installation_id: int) -> dict[str, Any]:
+    """My Team: run one agent as a child run; record it as a step of this run."""
+    key = orchestrator.DELEGATE_STEP_PREFIX + block["name"].removeprefix(
+        orchestrator.DELEGATE_PREFIX
+    )
+    events.emit(run.pk, "tool", _tool_event(block, key, "running"))
+    started = time.monotonic()
+    raw_input: dict[str, Any] = block["input"] if isinstance(block.get("input"), dict) else {}
+    result = orchestrator.delegate(run, installation_id, raw_input)
+    last = RunStep.objects.filter(run=run).aggregate(m=Max("idx"))["m"]
+    RunStep.objects.create(
+        run=run,
+        idx=0 if last is None else last + 1,
+        type=RunStep.Type.TOOL,
+        name=key,
+        input=redact_value("input", raw_input),
+        output=redact_value("output", result),
+        duration_ms=int((time.monotonic() - started) * 1000),
+        error=result.get("error", "") if result["status"] == "error" else "",
+    )
+    bind_context(run_id=run.pk, agent=run.agent_slug)  # the child run re-bound the log context
+    events.emit(run.pk, "tool", _tool_event(block, key, result["status"]))
+    return {
+        "type": "tool_result",
+        "tool_use_id": block["id"],
+        "content": orchestrator.result_for_llm(result),
+        "is_error": result["status"] == "error",
+    }
 
 
 def _append(run: Run, state: _State, role: str, content: Any) -> None:

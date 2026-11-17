@@ -1,0 +1,10 @@
+{# Search results for components/picker.html. Clicking one adds it to the picked list. #}
+{% if error %}<p class="text-xs text-red-600">{{ error }}</p>
+{% elif results %}
+<div class="flex max-h-48 flex-col overflow-y-auto rounded-lg border border-zinc-200 dark:border-zinc-800">
+  {% for r in results %}
+  <button type="button" class="px-3 py-1.5 text-left text-sm hover:bg-zinc-100 dark:hover:bg-zinc-800"
+          data-id="{{ r.id }}" data-title="{{ r.title }}" @click="add($el.dataset.id, $el.dataset.title)">{{ r.title }}</button>
+  {% endfor %}
+</div>
+{% else %}<p class="text-xs text-zinc-500">No {{ noun }}s found.</p>{% endif %}

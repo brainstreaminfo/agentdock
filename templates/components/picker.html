@@ -1,0 +1,17 @@
+{% load ui %}{# Product / collection picker (apps/agents/settings_schema.PickerWidget). Alpine keeps the picked list; HTMX searches. #}
+<div class="space-y-2" data-initial="{{ initial }}"
+     x-data="{ items: JSON.parse($el.dataset.initial),
+               add(id, title) { if (!this.items.some(i => i.id === id)) this.items.push({id: id, title: title}) },
+               remove(id) { this.items = this.items.filter(i => i.id !== id) } }">
+  <input type="hidden" name="{{ name }}" :value="items.map(i => i.id).join(',')">
+  <div class="flex flex-wrap gap-1.5">
+    <template x-for="item in items" :key="item.id">
+      <span class="badge badge-gray"><span x-text="item.title"></span>
+        <button type="button" class="ml-0.5 text-zinc-400 hover:text-zinc-700" @click="remove(item.id)" aria-label="Remove">×</button></span>
+    </template>
+    <span x-show="!items.length" class="text-xs text-zinc-500">None picked yet.</span>
+  </div>
+  <input type="search" name="q" class="input" autocomplete="off" placeholder="Search {{ noun }}s…"
+         hx-get="{{ search_url }}" hx-trigger="input changed delay:300ms, focus once" hx-target="next [data-results]">
+  <div data-results></div>
+</div>

@@ -1,0 +1,18 @@
+{% extends "layouts/app.html" %}{% load ui %}
+{% block title %}Install {{ agent.name }}{% endblock %}
+{% block content %}
+<div class="mx-auto max-w-2xl">
+  <a href="{% url 'marketplace:detail' current_shop.pk agent.slug %}" class="mb-4 inline-flex items-center gap-1 text-sm">{% icon "arrow-left" %} {{ agent.name }}</a>
+  {% if resumed %}<div class="alert alert-success mb-4">{% icon "circle-check-big" class="size-4 mt-0.5" %}<div>Access granted. Finish setting up {{ agent.name }}.</div></div>{% endif %}
+  <form method="post" class="card">{% csrf_token %}
+    <div class="card-header"><h1 class="card-title">Set up {{ agent.name }}</h1><span class="text-xs text-zinc-500">{{ version.label }}</span></div>
+    <div class="card-body space-y-6">
+      {% include "marketplace/_agent_form.html" %}
+    </div>
+    <div class="flex justify-end gap-2 border-t border-zinc-200 p-4 dark:border-zinc-800">
+      <a class="btn btn-secondary" href="{% url 'marketplace:detail' current_shop.pk agent.slug %}">Cancel</a>
+      <button class="btn btn-primary" type="submit">{% icon "plus" %} Install</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

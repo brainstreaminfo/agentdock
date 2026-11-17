@@ -94,6 +94,26 @@ Installs, active shops, runs per day (succeeded/failed), error rate and average
 cost per run, plus the latest runs with links to their traces. The Studio
 dashboard shows the same numbers for all agents.
 
+## 8. What merchants see
+
+- **Marketplace:** the listing (icon, tagline, description, screenshots,
+  "what it can do", example prompts) and a plain-language list of permissions,
+  calculated from the tools and events you picked. *Featured* agents get their
+  own row. Visibility decides who sees it: Public, Beta (everyone, with a badge),
+  or Private (only the shops you select under Availability).
+- **Install:** if the store hasn't granted a permission yet, Shopify asks the
+  merchant first. Then they fill in your **Merchant settings** form (product and
+  collection fields become search pickers) and choose an autonomy level from
+  the ones you allowed.
+- **Schedule and events:** a cron schedule runs in the store's own timezone; the
+  merchant can switch it off. Event triggers start a run when the event happens
+  in their store.
+- **My Team chat:** every installed agent with chat switched on joins the
+  merchant's team. My Team picks an agent from its **tagline and description**,
+  so say clearly what the agent is good at.
+- **Updates:** see section 5. If the new version needs new permissions, the
+  merchant sees "Update available" with the list and approves it in Shopify.
+
 ---
 
 ### Tools that don't exist yet

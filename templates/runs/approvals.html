@@ -1,0 +1,43 @@
+{% extends "layouts/app.html" %}{% load ui %}
+{% block title %}Approvals · {{ current_shop }}{% endblock %}
+{% block content %}
+{% include "components/page_header.html" with title="Approvals" subtitle="Changes your agents want to make. Nothing changes in your store until you approve it." %}
+
+<div class="mb-4 flex gap-2 text-sm">
+  <a href="{% url 'runs:approvals' current_shop.pk %}" class="nav-link {% if tab == 'pending' %}nav-link-active{% endif %}">Waiting{% if count %} <span class="badge badge-yellow">{{ count }}</span>{% endif %}</a>
+  <a href="{% url 'runs:approval_history' current_shop.pk %}" class="nav-link {% if tab == 'history' %}nav-link-active{% endif %}">History</a>
+</div>
+
+{% if proposals %}
+  {% if tab == "pending" and can_approve %}
+  <form id="bulk" method="post" action="{% url 'runs:bulk' current_shop.pk %}" x-data="{ all: false }" class="mb-4 flex flex-wrap items-center gap-2">{% csrf_token %}
+    <label class="flex items-center gap-2 text-sm"><input type="checkbox" x-model="all" @change="document.querySelectorAll('input[form=bulk][name=proposal]').forEach(c => c.checked = all)"> Select all</label>
+    <button class="btn btn-primary btn-sm" name="action" value="approve" onclick="return confirm('Apply the selected changes to your store?')">{% icon "check" class="size-3.5" %} Approve selected</button>
+    <button class="btn btn-secondary btn-sm" name="action" value="reject">Reject selected</button>
+  </form>
+  {% endif %}
+  <div class="space-y-4">
+    {% for proposal in proposals %}
+    <div class="flex gap-3">
+      {% if tab == "pending" and can_approve %}<input type="checkbox" form="bulk" name="proposal" value="{{ proposal.uuid }}" class="mt-5" aria-label="Select">{% endif %}
+      <div class="min-w-0 flex-1">
+        <p class="mb-1 text-xs text-zinc-500">
+          {{ proposal.agent_slug|default:"Agent" }} · {{ proposal.created_at|timesince }} ago{% if proposal.auto_applied %} · applied automatically{% endif %}{% if proposal.decided_by %} · {{ proposal.get_status_display|lower }} by {{ proposal.decided_by.email }}{% endif %}
+          {% if proposal.run_id %} · <a class="link" href="{% url 'chat:trace' current_shop.pk proposal.run_id %}">run #{{ proposal.run_id }}</a>{% endif %}
+        </p>
+        {% include "chat/_proposal_card.html" %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% if page %}{% include "components/pagination.html" %}{% endif %}
+{% else %}
+<div class="card">
+  {% if tab == "pending" %}
+    {% include "components/empty_state.html" with icon="circle-check-big" title="Nothing to approve" text="When an agent wants to change something in your store, it will appear here first." %}
+  {% else %}
+    {% include "components/empty_state.html" with icon="history" title="No decisions yet" %}
+  {% endif %}
+</div>
+{% endif %}
+{% endblock %}

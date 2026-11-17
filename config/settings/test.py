@@ -37,6 +37,7 @@ CELERY_RESULT_BACKEND = "cache+memory://"
 
 SENTRY_DSN = ""
 RUN_EVENTS_BACKEND = "memory"
+TRIGGERS_AUTO_SYNC_WEBHOOKS = False  # tests call apps.triggers.subscriptions directly
 ANTHROPIC_API_KEY = "test-anthropic-key"
 from apps.core.logging import build_logging_config  # noqa: E402
 

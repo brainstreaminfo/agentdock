@@ -1,0 +1,45 @@
+{% extends "layouts/app.html" %}{% load ui %}
+{% block title %}Brand memory · {{ current_shop }}{% endblock %}
+{% block content %}
+{% include "components/page_header.html" with title="Brand memory" subtitle="What every agent should know about your brand. All your agents read this before they work." %}
+<div class="grid gap-6 lg:grid-cols-5">
+  <div class="space-y-3 lg:col-span-3">
+    {% for entry in entries %}
+    <div class="card card-body">
+      <div class="flex items-start justify-between gap-3">
+        <div class="min-w-0">
+          <p class="font-mono text-sm font-medium">{{ entry.key }}{% if entry.source == "AGENT" %} <span class="badge badge-brand">from an agent</span>{% endif %}</p>
+          <p class="mt-1 whitespace-pre-line text-sm text-zinc-700 dark:text-zinc-300">{{ entry.value }}</p>
+        </div>
+        {% if can_edit %}
+        <div class="flex shrink-0 gap-1">
+          <button type="button" class="btn btn-ghost btn-sm" title="Edit" data-key="{{ entry.key }}" data-value="{{ entry.value }}"
+                  onclick="document.getElementById('id_key').value=this.dataset.key; var v=document.getElementById('id_value'); v.value=this.dataset.value; v.focus()">{% icon "pencil" class="size-3.5" %}</button>
+          <form method="post" action="{% url 'dashboard:memory_delete' current_shop.pk entry.pk %}" onsubmit="return confirm('Delete this memory?')">{% csrf_token %}<button class="btn btn-ghost btn-sm" title="Delete">{% icon "trash-2" class="size-3.5" %}</button></form>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+    {% empty %}
+    <div class="card">{% include "components/empty_state.html" with icon="brain" title="Nothing here yet" text="Add your brand voice, audience and policies so every agent writes and acts like you would." %}</div>
+    {% endfor %}
+  </div>
+
+  {% if can_edit %}
+  <div class="lg:col-span-2">
+    <form id="memory-form" method="post" class="card">{% csrf_token %}
+      <div class="card-header"><h2 class="card-title">Add or update</h2></div>
+      <div class="card-body space-y-4">
+        {% for field in form %}{% include "components/form_field.html" %}{% endfor %}
+        {% if suggestions %}
+        <div><p class="label">Suggestions</p><div class="flex flex-wrap gap-1.5">
+          {% for key, hint in suggestions.items %}<button type="button" class="badge badge-gray" title="{{ hint }}" onclick="document.getElementById('id_key').value='{{ key }}'; document.getElementById('id_value').placeholder='{{ hint|escapejs }}'; document.getElementById('id_value').focus()">{{ key }}</button>{% endfor %}
+        </div></div>
+        {% endif %}
+      </div>
+      <div class="flex justify-end border-t border-zinc-200 p-4 dark:border-zinc-800"><button class="btn btn-primary">Save</button></div>
+    </form>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

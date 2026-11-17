@@ -22,7 +22,8 @@ api_version = "2026-10"
 
   # App lifecycle + shop details, and the mandatory compliance (GDPR) topics.
   # Agent event topics (orders/create, …) are registered per shop via the Admin
-  # API in Phase 5, because they depend on which agents a shop installs.
+  # API (apps/triggers/subscriptions.py), because they depend on which agents a
+  # shop installs.
   [[webhooks.subscriptions]]
   topics = ["app/uninstalled", "app/scopes_update", "shop/update"]
   compliance_topics = ["customers/data_request", "customers/redact", "shop/redact"]

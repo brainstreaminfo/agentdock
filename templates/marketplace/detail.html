@@ -1,0 +1,80 @@
+{% extends "layouts/app.html" %}{% load ui %}
+{% block title %}{{ agent.name }} · Marketplace{% endblock %}
+{% block content %}
+<a href="{% url 'marketplace:home' current_shop.pk %}" class="mb-4 inline-flex items-center gap-1 text-sm">{% icon "arrow-left" %} Marketplace</a>
+
+<div class="grid gap-6 lg:grid-cols-3">
+  <div class="space-y-6 lg:col-span-2">
+    <div class="flex items-start gap-4">
+      <span class="flex size-14 shrink-0 items-center justify-center rounded-2xl bg-brand-50 text-brand-700 dark:bg-brand-700/30 dark:text-brand-100">{% icon agent.icon class="size-7" %}</span>
+      <div>
+        <h1 class="text-2xl font-semibold tracking-tight">{{ agent.name }}{% if agent.visibility == "BETA" %} <span class="badge badge-yellow align-middle">Beta</span>{% endif %}</h1>
+        <p class="mt-1 text-zinc-600 dark:text-zinc-400">{{ agent.tagline }}</p>
+      </div>
+    </div>
+
+    {% if agent.screenshots %}
+    <div class="flex gap-3 overflow-x-auto pb-2">
+      {% for shot in agent.screenshots %}<img src="{{ shot }}" alt="Screenshot of {{ agent.name }}" class="h-56 rounded-xl border border-zinc-200 dark:border-zinc-800">{% endfor %}
+    </div>
+    {% endif %}
+
+    {% if agent.description_md %}<div class="card card-body prose-chat text-sm">{{ agent.description_md|markdown }}</div>{% endif %}
+
+    {% if agent.capabilities %}
+    <div class="card">
+      <div class="card-header"><h2 class="card-title">What it can do</h2></div>
+      <ul class="card-body space-y-2 text-sm">
+        {% for c in agent.capabilities %}<li class="flex gap-2">{% icon "check" class="size-4 mt-0.5 text-emerald-600" %} {{ c }}</li>{% endfor %}
+      </ul>
+    </div>
+    {% endif %}
+
+    {% if agent.example_prompts %}
+    <div class="card">
+      <div class="card-header"><h2 class="card-title">Things you can ask</h2></div>
+      <div class="card-body flex flex-wrap gap-2">{% for p in agent.example_prompts %}<span class="badge badge-gray">“{{ p }}”</span>{% endfor %}</div>
+    </div>
+    {% endif %}
+  </div>
+
+  <aside class="space-y-4">
+    <div class="card card-body space-y-3">
+      {% if installation %}
+        <p class="flex items-center gap-2 text-sm font-medium text-emerald-700 dark:text-emerald-400">{% icon "circle-check-big" %} Installed ({{ installation.version.label }})</p>
+        <a href="{% url 'marketplace:agent' current_shop.pk installation.pk %}" class="btn btn-secondary w-full">Manage</a>
+      {% elif can_manage %}
+        <a href="{% url 'marketplace:install' current_shop.pk agent.slug %}" class="btn btn-primary w-full">{% icon "plus" %} Install</a>
+      {% else %}
+        <p class="text-sm text-zinc-500">Ask a store admin to install this agent.</p>
+      {% endif %}
+      <p class="text-xs text-zinc-500">
+        {% if agent.extra_price %}Adds ${{ agent.extra_price }}/month to your plan.{% else %}Included in your plan.{% endif %}
+        Version {{ version.label }}{% if version.published_at %}, updated {{ version.published_at|date:"j M Y" }}{% endif %}.
+      </p>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><h2 class="card-title">Permissions it needs</h2></div>
+      {% if permissions %}
+      <ul class="card-body space-y-2 text-sm">
+        {% for p in permissions %}
+        <li class="flex items-center gap-2">{% if p.writes %}{% icon "pencil" class="size-4 text-amber-600" %}{% else %}{% icon "eye" class="size-4 text-zinc-500" %}{% endif %} {{ p.label }}
+          {% if p.granted %}<span class="badge badge-green ml-auto">Granted</span>{% endif %}</li>
+        {% endfor %}
+      </ul>
+      {% else %}<p class="card-body text-sm text-zinc-500">No extra access needed.</p>{% endif %}
+    </div>
+
+    <div class="card">
+      <div class="card-header"><h2 class="card-title">How it works</h2></div>
+      <ul class="card-body space-y-1.5 text-sm text-zinc-600 dark:text-zinc-400">
+        {% if version.chat_enabled %}<li class="flex gap-2">{% icon "messages-square" class="size-4 mt-0.5" %} Chat with it</li>{% endif %}
+        {% if version.schedule_cron %}<li class="flex gap-2">{% icon "calendar-clock" class="size-4 mt-0.5" %} Runs on a schedule</li>{% endif %}
+        {% if version.event_topics %}<li class="flex gap-2">{% icon "zap" class="size-4 mt-0.5" %} Reacts to store events</li>{% endif %}
+        <li class="flex gap-2">{% icon "shield-check" class="size-4 mt-0.5" %} Store changes wait for your approval unless you choose otherwise</li>
+      </ul>
+    </div>
+  </aside>
+</div>
+{% endblock %}

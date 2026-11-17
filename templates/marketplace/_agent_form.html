@@ -1,0 +1,19 @@
+{% load ui %}{# Settings + behaviour fields, shared by the install page and the agent page. #}
+{% if error %}<div class="alert alert-error">{% icon "circle-alert" class="size-4 mt-0.5" %}<div>{{ error }}</div></div>{% endif %}
+{% if settings_form.non_field_errors %}<div class="alert alert-error">{{ settings_form.non_field_errors }}</div>{% endif %}
+{% if settings_form.fields %}
+<div class="space-y-4">
+  {% for field in settings_form %}{% include "components/form_field.html" %}{% endfor %}
+</div>
+{% endif %}
+<div class="space-y-1.5">
+  <p class="label">{{ behaviour.autonomy.label }}</p>
+  <div class="grid gap-2 sm:grid-cols-3">
+    {% for choice in behaviour.autonomy %}
+    <label class="flex cursor-pointer items-start gap-2 rounded-lg border border-zinc-200 p-3 text-sm has-[:checked]:border-brand-500 has-[:checked]:bg-brand-50/50 dark:border-zinc-800 dark:has-[:checked]:bg-brand-700/20">{{ choice.tag }} <span>{{ choice.choice_label }}</span></label>
+    {% endfor %}
+  </div>
+  <p class="help">{{ behaviour.autonomy.help_text }}</p>
+  {% for e in behaviour.autonomy.errors %}<p class="field-error">{{ e }}</p>{% endfor %}
+</div>
+{% if behaviour.schedule_enabled %}{% include "components/form_field.html" with field=behaviour.schedule_enabled %}{% endif %}

@@ -1,0 +1,10 @@
+{% load ui %}{# Usage: {% include "components/pagination.html" %} with a Paginator `page` in context. Keeps other GET params. #}
+{% if page.has_other_pages %}
+<nav class="mt-4 flex items-center justify-between text-sm">
+  <span class="text-zinc-500">Page {{ page.number }} of {{ page.paginator.num_pages }}</span>
+  <span class="flex gap-2">
+    {% if page.has_previous %}<a class="btn btn-secondary btn-sm" href="?{% for k, v in request.GET.items %}{% if k != 'page' %}{{ k }}={{ v|urlencode }}&{% endif %}{% endfor %}page={{ page.previous_page_number }}">Previous</a>{% endif %}
+    {% if page.has_next %}<a class="btn btn-secondary btn-sm" href="?{% for k, v in request.GET.items %}{% if k != 'page' %}{{ k }}={{ v|urlencode }}&{% endif %}{% endfor %}page={{ page.next_page_number }}">Next</a>{% endif %}
+  </span>
+</nav>
+{% endif %}

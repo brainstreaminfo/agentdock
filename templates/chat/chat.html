@@ -8,13 +8,20 @@
     <div class="card">
       <div class="card-header"><h2 class="card-title">Start a chat</h2></div>
       <div class="space-y-1 p-2">
+        {% if installations %}
+        <form method="post" action="{% url 'chat:start' current_shop.pk %}">{% csrf_token %}
+          <input type="hidden" name="installation" value="team">
+          <button class="nav-link w-full font-medium" type="submit" title="Ask anything: the right agents answer together">{% icon "users" %} <span class="truncate">My Team</span> <span class="badge badge-gray ml-auto">{{ installations|length }}</span></button>
+        </form>
+        <div class="my-1 border-t border-zinc-200 dark:border-zinc-800"></div>
+        {% endif %}
         {% for inst in installations %}
         <form method="post" action="{% url 'chat:start' current_shop.pk %}">{% csrf_token %}
           <input type="hidden" name="installation" value="{{ inst.pk }}">
           <button class="nav-link w-full" type="submit">{% icon inst.agent.icon %} <span class="truncate">{{ inst.agent.name }}</span></button>
         </form>
         {% empty %}
-          <p class="p-3 text-sm text-zinc-500">No chat agents installed yet. They'll appear here once you install one from the Marketplace.</p>
+          <p class="p-3 text-sm text-zinc-500">No chat agents installed yet. <a class="link" href="{% url 'marketplace:home' current_shop.pk %}">Browse the Marketplace</a>.</p>
         {% endfor %}
       </div>
     </div>
@@ -24,7 +31,7 @@
       <div class="space-y-0.5 p-2">
         {% for c in conversations %}
         <a href="{% url 'chat:conversation' current_shop.pk c.pk %}" class="nav-link {% if conversation and c.pk == conversation.pk %}nav-link-active{% endif %}">
-          <span class="truncate">{{ c.title|default:"Untitled" }}</span>
+          {% if c.installation %}{% icon c.installation.agent.icon %}{% else %}{% icon "users" %}{% endif %}<span class="truncate">{{ c.title|default:"Untitled" }}</span>
         </a>
         {% endfor %}
       </div>
@@ -35,18 +42,25 @@
   {# ---------------- right: conversation #}
   <section class="lg:col-span-3">
     {% if conversation %}
+    {% with inst=conversation.installation %}
     <div class="card flex min-h-[70vh] flex-col">
       <div class="card-header">
-        <h1 class="card-title flex items-center gap-2">{% icon conversation.installation.agent.icon|default:"bot" %} {{ conversation.installation.agent.name|default:"My Team" }}</h1>
-        <span class="text-xs text-zinc-500">{{ conversation.installation.get_autonomy_display }}</span>
+        {% if inst %}
+        <h1 class="card-title flex items-center gap-2">{% icon inst.agent.icon %} {{ inst.agent.name }}</h1>
+        <span class="text-xs text-zinc-500">{{ inst.get_autonomy_display }}</span>
+        {% else %}
+        <h1 class="card-title flex items-center gap-2">{% icon "users" %} My Team</h1>
+        <span class="text-xs text-zinc-500">{{ installations|length }} agent{{ installations|length|pluralize }}: {% for i in installations %}{{ i.agent.name }}{% if not forloop.last %}, {% endif %}{% endfor %}</span>
+        {% endif %}
       </div>
       <div id="turns" class="flex-1 space-y-6 overflow-y-auto p-5">
         {% for turn in turns %}{% include "chat/_turn.html" %}{% empty %}
           <div id="chat-empty" class="py-10 text-center text-sm text-zinc-500">
-            {% with prompts=conversation.installation.agent.example_prompts %}
+            {% with prompts=inst.agent.example_prompts %}
             {% if prompts %}<p class="mb-3">Try asking:</p>
               <div class="flex flex-wrap justify-center gap-2">{% for p in prompts %}<button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('chat-input').value=this.textContent.trim();document.getElementById('chat-input').focus()">{{ p }}</button>{% endfor %}</div>
-            {% else %}Ask {{ conversation.installation.agent.name }} anything about your store.{% endif %}
+            {% elif inst %}Ask {{ inst.agent.name }} anything about your store.
+            {% else %}Ask anything: your team picks the right agents and answers together.{% endif %}
             {% endwith %}
           </div>
         {% endfor %}
@@ -57,13 +71,14 @@
             hx-on::before-request="document.getElementById('chat-empty')?.remove()"
             hx-on::after-request="if(event.detail.successful) this.reset()">
         <div class="flex items-end gap-2">
-          <textarea id="chat-input" name="message" rows="2" class="input resize-none" placeholder="Message {{ conversation.installation.agent.name }}…" required
+          <textarea id="chat-input" name="message" rows="2" class="input resize-none" placeholder="Message {{ inst.agent.name|default:'your team' }}…" required
             onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();this.form.requestSubmit();}"></textarea>
           <button class="btn btn-primary" type="submit">{% icon "send" %}<span class="sr-only">Send</span></button>
         </div>
-        <p class="help">Enter to send · Shift+Enter for a new line. Changes to your store always show up here for approval first{% if conversation.installation.autonomy == "AUTO" %} (except: this agent acts automatically){% endif %}.</p>
+        <p class="help">Enter to send · Shift+Enter for a new line. Changes to your store always show up here for approval first{% if inst.autonomy == "AUTO" %} (except: this agent acts automatically){% endif %}.</p>
       </form>
     </div>
+    {% endwith %}
     {% else %}
     <div class="card">
       {% include "components/empty_state.html" with icon="messages-square" title="Pick an agent to chat with" text="Your agents can look things up in your store, write content and suggest changes for you to approve." %}

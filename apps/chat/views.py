@@ -24,6 +24,7 @@ from django.views.decorators.http import require_POST
 from apps.accounts.models import Membership
 from apps.agents import events
 from apps.agents.models import AgentInstallation
+from apps.agents.orchestrator import TEAM_NAME, team_members, team_version
 from apps.agents.runtime import create_run
 from apps.agents.tasks import execute_run_task
 from apps.core.audit import audit
@@ -43,12 +44,13 @@ class MessageForm(forms.Form):
 
 
 def _chat_installations(shop) -> list[AgentInstallation]:  # type: ignore[no-untyped-def]
-    installs = (
-        AgentInstallation.objects.for_shop(shop)
-        .filter(enabled=True)
-        .select_related("agent", "version")
-    )
-    return [i for i in installs if i.version.chat_enabled]
+    return team_members(shop)
+
+
+def _merchant_conversations(shop, user):  # type: ignore[no-untyped-def]
+    """The user's chats in this shop. Studio playground chats (linked to a version) are hidden.
+    `installation=None` means a My Team chat."""
+    return Conversation.objects.for_shop(shop).filter(user=user, version__isnull=True)
 
 
 @require_shop_access()
@@ -56,19 +58,14 @@ def chat_home(
     request: HttpRequest, shop_id: int, conversation_id: int | None = None
 ) -> HttpResponse:
     shop = request.shop  # type: ignore[attr-defined]
-    # Playground conversations (Studio) have no installation and aren't listed here.
-    conversations = Conversation.objects.for_shop(shop).filter(
-        user=request.user, installation__isnull=False
+    conversations = _merchant_conversations(shop, request.user).select_related(
+        "installation__agent"
     )[:30]
     conversation = None
     turns = []
     if conversation_id is not None:
         conversation = get_object_or_404(
-            Conversation,
-            pk=conversation_id,
-            shop=shop,
-            user=request.user,
-            installation__isnull=False,
+            _merchant_conversations(shop, request.user), pk=conversation_id
         )
         for run in conversation.runs.order_by("id"):
             turns.append(
@@ -95,14 +92,17 @@ def chat_home(
 @require_POST
 def start_conversation(request: HttpRequest, shop_id: int) -> HttpResponse:
     shop = request.shop  # type: ignore[attr-defined]
-    installation = get_object_or_404(
-        AgentInstallation, pk=request.POST.get("installation"), shop=shop, enabled=True
-    )
+    if request.POST.get("installation") == "team":
+        if not team_members(shop):
+            raise Http404("No chat agents installed")
+        installation, name = None, TEAM_NAME
+    else:
+        installation = get_object_or_404(
+            AgentInstallation, pk=request.POST.get("installation"), shop=shop, enabled=True
+        )
+        name = installation.agent.name
     conversation = Conversation.objects.create(
-        shop=shop,
-        user_id=request.user.pk,
-        installation=installation,
-        title=f"Chat with {installation.agent.name}",
+        shop=shop, user_id=request.user.pk, installation=installation, title=f"Chat with {name}"
     )
     return redirect("chat:conversation", shop_id=shop.pk, conversation_id=conversation.pk)
 
@@ -111,9 +111,15 @@ def start_conversation(request: HttpRequest, shop_id: int) -> HttpResponse:
 @require_POST
 def send_message(request: HttpRequest, shop_id: int, conversation_id: int) -> HttpResponse:
     shop = request.shop  # type: ignore[attr-defined]
-    conversation = get_object_or_404(Conversation, pk=conversation_id, shop=shop, user=request.user)
-    if conversation.installation is None:
-        raise Http404("My Team arrives in Phase 5")
+    conversation = get_object_or_404(
+        _merchant_conversations(shop, request.user), pk=conversation_id
+    )
+    installation = conversation.installation
+    if installation is not None and not installation.enabled:
+        return HttpResponse(
+            '<p class="text-sm text-amber-600">This agent is paused. Resume it in My agents.</p>',
+            status=409,
+        )
     if conversation.runs.filter(status__in=[Run.Status.QUEUED, Run.Status.RUNNING]).exists():
         return HttpResponse(
             '<p class="text-sm text-amber-600">Please wait for the current answer to finish.</p>',
@@ -127,10 +133,10 @@ def send_message(request: HttpRequest, shop_id: int, conversation_id: int) -> Ht
     if conversation.title.startswith("Chat with ") and not conversation.runs.exists():
         conversation.title = text[:80]
         conversation.save(update_fields=["title", "updated_at"])
-    installation = conversation.installation
     run = create_run(
         shop=shop,
-        version=installation.version,
+        # My Team (no installation) runs the orchestrator; see apps/agents/orchestrator.py.
+        version=installation.version if installation else team_version(),
         installation=installation,
         conversation=conversation,
         trigger=Run.Trigger.CHAT,
@@ -242,6 +248,14 @@ def run_trace(request: HttpRequest, shop_id: int, run_id: int) -> HttpResponse:
         "runs/trace.html",
         {
             "run": run,
+            "live": run.status in (Run.Status.QUEUED, Run.Status.RUNNING),
+            "children": run.child_runs.order_by("id"),
+            # Changes are shown here for runs without a chat (schedule, event, Run now).
+            "proposals": (
+                ActionProposal.objects.filter(run=run).select_related("snapshot")
+                if not run.conversation_id
+                else []
+            ),
             "steps": run.steps.order_by("idx"),
             "show_traceback": request.user.is_staff,
             "tokens": f"{run.tokens_in:,} / {run.tokens_out:,}",

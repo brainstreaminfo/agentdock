@@ -1,0 +1,1 @@
+<span class="badge {% if run.status == 'SUCCEEDED' %}badge-green{% elif run.status == 'FAILED' %}badge-red{% elif run.status == 'RUNNING' or run.status == 'QUEUED' %}badge-brand{% else %}badge-gray{% endif %}">{{ run.get_status_display }}</span>

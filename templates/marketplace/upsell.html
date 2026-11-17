@@ -1,0 +1,12 @@
+{% extends "layouts/app.html" %}{% load ui %}
+{% block title %}Upgrade to install {{ agent.name }}{% endblock %}
+{% block content %}
+<div class="mx-auto max-w-lg card card-body space-y-4">
+  <h1 class="text-lg font-semibold">{% icon "sparkles" %} Upgrade to install {{ agent.name }}</h1>
+  <p class="text-sm text-zinc-600 dark:text-zinc-400">{{ decision.reason }}</p>
+  <div class="flex gap-2">
+    {% if decision.upgrade_url %}<a class="btn btn-primary" href="{{ decision.upgrade_url }}">See plans</a>{% endif %}
+    <a class="btn btn-secondary" href="{% url 'marketplace:detail' current_shop.pk agent.slug %}">Back</a>
+  </div>
+</div>
+{% endblock %}

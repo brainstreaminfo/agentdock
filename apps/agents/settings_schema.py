@@ -19,10 +19,12 @@ Postgres JSON doesn't keep key order, so the field order is stored in "x-order".
 
 from __future__ import annotations
 
+import json
 import re
 from typing import Any
 
 from django import forms
+from django.utils.safestring import SafeString, mark_safe
 from jsonschema import Draft202012Validator
 
 FIELD_TYPES = {
@@ -171,8 +173,20 @@ def schema_to_fields(schema: dict[str, Any]) -> list[dict[str, Any]]:
 
 
 # --------------------------------------------------------------------------- rendering & validation
-def build_form(schema: dict[str, Any], data: Any = None, initial: dict | None = None) -> forms.Form:
-    """A Django form for the schema. `cleaned_data` is the settings dict."""
+def build_form(
+    schema: dict[str, Any],
+    data: Any = None,
+    initial: dict | None = None,
+    *,
+    picker_urls: dict[str, str] | None = None,
+) -> forms.Form:
+    """
+    A Django form for the schema. `cleaned_data` is the settings dict.
+
+    `picker_urls` ({"product": url, "collection": url}) turns product/collection
+    pickers into search boxes (merchant pages). Without it they are plain
+    comma-separated id boxes (Studio).
+    """
     required = set(schema.get("required") or [])
     form_fields: dict[str, forms.Field] = {}
     for key, prop in ordered_properties(schema):
@@ -186,12 +200,14 @@ def build_form(schema: dict[str, Any], data: Any = None, initial: dict | None = 
         field: forms.Field
         if widget in PICKERS.values():
             noun = "product" if widget == "product-picker" else "collection"
-            field = PickerField(
-                **common,
-                widget=forms.TextInput(
+            picker_widget: forms.Widget
+            if picker_urls and noun in picker_urls:
+                picker_widget = PickerWidget(noun=noun, search_url=picker_urls[noun])
+            else:
+                picker_widget = forms.TextInput(
                     attrs={"class": "input", "placeholder": f"Shopify {noun} ids, comma-separated"}
-                ),
-            )
+                )
+            field = PickerField(**common, widget=picker_widget)
         elif widget == "textarea":
             field = forms.CharField(
                 **common,
@@ -237,8 +253,42 @@ def build_form(schema: dict[str, Any], data: Any = None, initial: dict | None = 
     return form_class(data=data, initial=values)
 
 
+class PickerWidget(forms.Widget):
+    """
+    Search-and-pick box for products / collections (templates/components/picker.html).
+    Submits the picked ids comma-separated, like the plain text box.
+    """
+
+    def __init__(self, *, noun: str, search_url: str) -> None:
+        super().__init__()
+        self.noun = noun
+        self.search_url = search_url
+
+    def format_value(self, value: Any) -> list[str]:
+        if isinstance(value, list):
+            return [str(v) for v in value]
+        return [v.strip() for v in str(value or "").split(",") if v.strip()]
+
+    def render(self, name: str, value: Any, attrs: Any = None, renderer: Any = None) -> SafeString:
+        from django.template.loader import render_to_string
+
+        ids = self.format_value(value)
+        return mark_safe(  # noqa: S308 (rendered by our own escaped template)
+            render_to_string(
+                "components/picker.html",
+                {
+                    "name": name,
+                    "noun": self.noun,
+                    "search_url": self.search_url,
+                    # Titles of already-picked items aren't stored: show the id.
+                    "initial": json.dumps([{"id": i, "title": i.rsplit("/", 1)[-1]} for i in ids]),
+                },
+            )
+        )
+
+
 class PickerField(forms.CharField):
-    """Comma-separated Shopify ids (Phase 5 replaces the text box with a search picker)."""
+    """Comma-separated Shopify ids; cleaned to a list."""
 
     def to_python(self, value: Any) -> list[str]:  # type: ignore[override]
         if isinstance(value, list):

@@ -4,20 +4,67 @@
 {% include "components/page_header.html" with title="Dashboard" subtitle="An overview of your AI agents and what they've been doing." %}
 
 <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-  {% include "components/stat_card.html" with label="Installed agents" value="0" icon="bot" %}
-  {% include "components/stat_card.html" with label="Runs this month" value="0" icon="activity" %}
-  {% include "components/stat_card.html" with label="Pending approvals" value="0" icon="circle-check-big" %}
-  {% include "components/stat_card.html" with label="Open alerts" value="0" icon="bell" %}
+  {% include "components/stat_card.html" with label="Installed agents" value=kpis.agents|stringformat:"d" icon="bot" %}
+  {% include "components/stat_card.html" with label="Runs this month" value=kpis.runs_month|stringformat:"d" icon="activity" hint=kpis.cost_hint %}
+  {% include "components/stat_card.html" with label="Pending approvals" value=kpis.pending|stringformat:"d" icon="circle-check-big" %}
+  {% include "components/stat_card.html" with label="Open alerts" value=kpis.alerts|stringformat:"d" icon="bell" %}
 </div>
 
 <div class="mt-6 grid gap-6 lg:grid-cols-2">
   <div class="card">
-    <div class="card-header"><h2 class="card-title">Pending approvals</h2></div>
+    <div class="card-header"><h2 class="card-title">Pending approvals</h2>{% if kpis.pending %}<a class="text-xs link" href="{% url 'runs:approvals' current_shop.pk %}">See all {{ kpis.pending }}</a>{% endif %}</div>
+    {% if pending %}
+    <div class="card-body space-y-3">{% for proposal in pending %}{% include "chat/_proposal_card.html" %}{% endfor %}</div>
+    {% else %}
     {% include "components/empty_state.html" with icon="circle-check-big" title="Nothing to approve" text="When an agent wants to change something in your store, it will appear here first." %}
+    {% endif %}
   </div>
-  <div class="card">
-    <div class="card-header"><h2 class="card-title">Recent runs</h2></div>
-    {% include "components/empty_state.html" with icon="activity" title="No runs yet" text="Install an agent from the Marketplace to get started." %}
+
+  <div class="space-y-6">
+    <div class="card">
+      <div class="card-header"><h2 class="card-title">Alerts</h2><a class="text-xs link" href="{% url 'dashboard:alerts' current_shop.pk %}">All alerts</a></div>
+      {% if alerts %}
+      <ul class="divide-y divide-zinc-100 dark:divide-zinc-800">
+        {% for alert in alerts %}{% include "dashboard/_alert_row.html" %}{% endfor %}
+      </ul>
+      {% else %}{% include "components/empty_state.html" with icon="bell" title="No new alerts" %}{% endif %}
+    </div>
+
+    <div class="card">
+      <div class="card-header"><h2 class="card-title">Recent runs</h2><a class="text-xs link" href="{% url 'runs:list' current_shop.pk %}">All runs</a></div>
+      {% if runs %}
+      <table class="table"><tbody>
+        {% for run in runs %}
+        <tr>
+          <td><a class="link" href="{% url 'chat:trace' current_shop.pk run.pk %}">#{{ run.pk }}</a></td>
+          <td class="text-sm">{{ run.agent_slug }}</td>
+          <td class="text-xs text-zinc-500">{{ run.get_trigger_display }}</td>
+          <td>{% include "runs/_status_badge.html" %}</td>
+          <td class="text-right text-xs text-zinc-500">{{ run.created_at|timesince }} ago</td>
+        </tr>
+        {% endfor %}
+      </tbody></table>
+      {% else %}{% include "components/empty_state.html" with icon="activity" title="No runs yet" text="Install an agent from the Marketplace to get started." %}{% endif %}
+    </div>
   </div>
+</div>
+
+<div class="card mt-6">
+  <div class="card-header"><h2 class="card-title">Your agents</h2><a class="text-xs link" href="{% url 'marketplace:home' current_shop.pk %}">Add agents</a></div>
+  {% if installs %}
+  <div class="grid gap-3 p-4 sm:grid-cols-2 lg:grid-cols-3">
+    {% for row in installs %}{% with inst=row.inst %}
+    <a href="{% url 'marketplace:agent' current_shop.pk inst.pk %}" class="flex items-center gap-3 rounded-lg border border-zinc-200 p-3 hover:bg-zinc-50 dark:border-zinc-800 dark:hover:bg-zinc-800/50">
+      {% icon inst.agent.icon class="size-5" %}
+      <div class="min-w-0">
+        <p class="truncate text-sm font-medium">{{ inst.agent.name }}</p>
+        <p class="text-xs text-zinc-500">{% if not inst.enabled %}Paused{% elif row.next_run %}Next run {{ row.next_run|date:"D H:i" }}{% elif inst.last_run_at %}Last run {{ inst.last_run_at|timesince }} ago{% else %}Ready{% endif %}</p>
+      </div>
+    </a>
+    {% endwith %}{% endfor %}
+  </div>
+  {% else %}
+    {% include "components/empty_state.html" with icon="store" title="No agents installed" text="Browse the Marketplace to add your first agent." %}
+  {% endif %}
 </div>
 {% endblock %}

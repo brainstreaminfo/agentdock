@@ -1,0 +1,44 @@
+{% extends "layouts/app.html" %}{% load ui %}
+{% block title %}Runs · {{ current_shop }}{% endblock %}
+{% block content %}
+{% include "components/page_header.html" with title="Runs" subtitle="Every time an agent worked: from chat, a schedule, a store event or Run now." %}
+
+<form method="get" class="mb-4 flex flex-wrap gap-2">
+  <select name="agent" class="input w-auto" onchange="this.form.submit()">
+    <option value="">All agents</option>
+    {% for a in agents %}<option value="{{ a }}" {% if a == filters.agent %}selected{% endif %}>{{ a }}</option>{% endfor %}
+  </select>
+  <select name="status" class="input w-auto" onchange="this.form.submit()">
+    <option value="">Any status</option>
+    {% for v, label in statuses %}<option value="{{ v }}" {% if v == filters.status %}selected{% endif %}>{{ label }}</option>{% endfor %}
+  </select>
+  <select name="trigger" class="input w-auto" onchange="this.form.submit()">
+    <option value="">Any trigger</option>
+    {% for v, label in triggers %}<option value="{{ v }}" {% if v == filters.trigger %}selected{% endif %}>{{ label }}</option>{% endfor %}
+  </select>
+  <noscript><button class="btn btn-secondary">Filter</button></noscript>
+</form>
+
+<div class="card overflow-x-auto">
+  {% if page.object_list %}
+  <table class="table">
+    <thead><tr><th>Run</th><th>Agent</th><th>Trigger</th><th>Status</th><th class="text-right">Cost</th><th class="text-right">When</th></tr></thead>
+    <tbody>
+      {% for run in page.object_list %}
+      <tr>
+        <td><a class="link" href="{% url 'chat:trace' current_shop.pk run.pk %}">#{{ run.pk }}</a>{% if run.parent_run_id %} <span class="text-xs text-zinc-400">via My Team</span>{% endif %}</td>
+        <td>{{ run.agent_slug }}{% if run.version %} <span class="text-xs text-zinc-400">{{ run.version.label }}</span>{% endif %}</td>
+        <td class="text-sm">{{ run.get_trigger_display }}</td>
+        <td>{% include "runs/_status_badge.html" %}{% if run.error %}<p class="mt-1 max-w-xs truncate text-xs text-zinc-500" title="{{ run.error }}">{{ run.error }}</p>{% endif %}</td>
+        <td class="text-right text-sm">${{ run.cost_usd|floatformat:4 }}</td>
+        <td class="text-right text-sm text-zinc-500" title="{{ run.created_at }}">{{ run.created_at|timesince }} ago</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+    {% include "components/empty_state.html" with icon="activity" title="No runs found" %}
+  {% endif %}
+</div>
+{% include "components/pagination.html" %}
+{% endblock %}

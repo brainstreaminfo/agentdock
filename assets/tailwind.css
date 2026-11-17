@@ -97,6 +97,7 @@
   }
   .nav-link-active { @apply bg-zinc-100 text-zinc-900 dark:bg-zinc-800 dark:text-zinc-100; }
   .nav-link-disabled { @apply pointer-events-none opacity-50; }
+  .link { @apply font-medium text-brand-600 hover:underline dark:text-brand-100; }
 }
 
 /* Chat answers rendered from Markdown (sanitized server-side). */

@@ -95,6 +95,9 @@ class AgentDefinition(TimeStampedModel):
         default=True, help_text="Upgrade installs automatically when scopes don't change."
     )
     is_template = models.BooleanField(default=False, help_text="Example to clone; never published.")
+    # Built-in platform agent (e.g. "My Team", the chat orchestrator). Hidden from
+    # the Studio and the Marketplace; managed by code (apps/agents/orchestrator.py).
+    is_system = models.BooleanField(default=False, editable=False)
     status = models.CharField(max_length=10, choices=Status.choices, default=Status.DRAFT)
     created_by = models.ForeignKey(
         django_settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL
@@ -267,7 +270,12 @@ class AgentVersion(TimeStampedModel):
 
 
 class AgentInstallation(ShopScopedModel):
-    """A published agent installed in a shop (install UI arrives in Phase 5)."""
+    """
+    A published agent installed in a shop, pinned to one version (spec §8.3).
+
+    Saving or deleting an installation re-syncs its schedule and the shop's
+    Shopify event subscriptions (receivers in apps/triggers/receivers.py).
+    """
 
     shop = models.ForeignKey("shops.Shop", on_delete=models.CASCADE, related_name="installations")
     agent = models.ForeignKey(AgentDefinition, on_delete=models.PROTECT, related_name="installs")

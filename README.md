@@ -25,8 +25,14 @@ Shopify app: merchants use our own UI on our domain.
   settings-form builder, triggers, behaviour, availability), a playground,
   test cases, publishing with automatic upgrades, versions and rollback, and
   analytics.
+- Phase 5 (Marketplace & installs) done: Marketplace with search and
+  categories, install flow with permission upgrade through Shopify, My agents
+  (settings with product/collection pickers, Run now, pause, update, uninstall),
+  "My Team" chat with all agents, approvals queue with bulk approve and undo,
+  schedules in the store's timezone, Shopify-event triggers, alerts, brand
+  memory, and a real dashboard.
 
-Next: Phase 5, the Marketplace and installs.
+Next: Phase 6, billing and launch.
 
 ## Run it locally
 
@@ -79,15 +85,19 @@ apps/accounts/          User (email login), Membership (OWNER/ADMIN/MEMBER), mag
 apps/shops/             Shop model (encrypted expiring tokens, scopes), store list/switcher
 apps/shopify_app/       OAuth, launch, HMAC, webhooks, GraphQL client, token refresh
   queries/*.graphql     GraphQL documents
-apps/dashboard/         merchant dashboard, onboarding, settings, Alert model
+apps/dashboard/         merchant dashboard, alerts, brand memory, settings, Alert model
 apps/tools/             Tool Catalog: registry, executor (rules + approvals), custom tools
   catalog/              the 50 built-in tools (<domain>.py + <domain>.graphql)
-apps/runs/              Run, RunStep, ActionProposal, ActionSnapshot
-apps/agents/            agents, versions, installations, runtime (Claude loop), LLM provider
+apps/runs/              Run, RunStep, ActionProposal, ActionSnapshot; runs list, approvals queue
+apps/agents/            agents, versions, installations, runtime (Claude loop), LLM provider,
+                        orchestrator ("My Team")
+apps/marketplace/       Marketplace, install flow (scope upgrade), My agents, pickers
+apps/triggers/          schedules (celery-beat per installation), Shopify event routing,
+                        per-shop webhook subscriptions
 apps/chat/             conversations, chat UI, live streaming (SSE), approvals in chat
 apps/studio/            staff-only Studio (/studio/): agent builder, playground, tests,
                         publish, versions, analytics, tool catalog
-apps/billing/           plans (placeholders until Phase 6)
+apps/billing/           plans and entitlements (placeholders until Phase 6)
 templates/              Django templates (layouts/, components/, per-app folders)
 assets/tailwind.css     Tailwind source + UI kit classes  →  static/css/app.css
 tests/                  pytest (Shopify mocked with respx)

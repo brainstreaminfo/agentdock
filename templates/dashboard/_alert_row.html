@@ -1,0 +1,13 @@
+{% load ui %}{# One alert in a list. #}
+<li class="flex items-start gap-3 px-4 py-3 text-sm {% if alert.read_at %}opacity-60{% endif %}">
+  {% if alert.severity == "CRITICAL" %}{% icon "octagon-alert" class="size-4 mt-0.5 text-red-600" %}{% elif alert.severity == "WARNING" %}{% icon "triangle-alert" class="size-4 mt-0.5 text-amber-600" %}{% else %}{% icon "info" class="size-4 mt-0.5 text-sky-600" %}{% endif %}
+  <div class="min-w-0 flex-1">
+    <p class="font-medium">{{ alert.title }}</p>
+    {% if alert.body %}<p class="mt-0.5 whitespace-pre-line text-zinc-600 dark:text-zinc-400">{{ alert.body|truncatechars:400 }}</p>{% endif %}
+    <p class="mt-1 text-xs text-zinc-500">{{ alert.agent_slug|default:APP_NAME }} · {{ alert.created_at|timesince }} ago</p>
+    {% if alert.action_url %}<a class="btn btn-secondary btn-sm mt-2" href="{{ alert.action_url }}">Fix this</a>{% endif %}
+  </div>
+  {% if not alert.read_at %}
+  <form method="post" action="{% url 'dashboard:alert_read' current_shop.pk alert.pk %}">{% csrf_token %}<button class="btn btn-ghost btn-sm" title="Mark as read">{% icon "check" class="size-3.5" %}</button></form>
+  {% endif %}
+</li>

@@ -48,6 +48,8 @@ INSTALLED_APPS = [
     "apps.studio",
     "apps.chat",
     "apps.billing",
+    "apps.triggers",
+    "apps.marketplace",
 ]
 
 MIDDLEWARE = [
@@ -194,6 +196,8 @@ DEFAULT_MODEL = env.str("DEFAULT_MODEL", default="claude-opus-5-5")
 # is AgentVersion.max_tokens). Streaming is used, so large values are fine.
 LLM_MAX_TOKENS_PER_TURN = env.int("LLM_MAX_TOKENS_PER_TURN", default=32_000)
 # Per-shop spend cap per day (USD). Phase 6 replaces this with plan limits.
+# Re-sync each shop's Shopify event subscriptions when its agents change (apps/triggers).
+TRIGGERS_AUTO_SYNC_WEBHOOKS = env.bool("TRIGGERS_AUTO_SYNC_WEBHOOKS", default=True)
 DEFAULT_DAILY_SPEND_LIMIT_USD = env.float("DEFAULT_DAILY_SPEND_LIMIT_USD", default=10.0)
 # Models that support server-side refusal fallbacks (fallbacks: "default").
 LLM_FALLBACK_MODELS = [

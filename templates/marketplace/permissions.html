@@ -1,0 +1,27 @@
+{% extends "layouts/app.html" %}{% load ui %}
+{% block title %}Install {{ agent.name }}{% endblock %}
+{% block content %}
+<div class="mx-auto max-w-lg">
+  <div class="card">
+    <div class="card-body space-y-4">
+      <div class="flex items-center gap-3">
+        <span class="flex size-10 items-center justify-center rounded-xl bg-brand-50 text-brand-700 dark:bg-brand-700/30 dark:text-brand-100">{% icon agent.icon class="size-5" %}</span>
+        <h1 class="text-lg font-semibold">{{ agent.name }} needs access to:</h1>
+      </div>
+      {% if declined %}
+      <div class="alert alert-warning">{% icon "triangle-alert" class="size-4 mt-0.5" %}<div>Some access still wasn't granted in Shopify. The agent can't be installed without it.</div></div>
+      {% endif %}
+      <ul class="space-y-2 text-sm">
+        {% for p in permissions %}
+        <li class="flex items-center gap-2">{% if p.writes %}{% icon "pencil" class="size-4 text-amber-600" %}{% else %}{% icon "eye" class="size-4 text-zinc-500" %}{% endif %} {{ p.label }} <code class="ml-auto text-xs text-zinc-400">{{ p.scope }}</code></li>
+        {% endfor %}
+      </ul>
+      <p class="text-sm text-zinc-500">Shopify will ask you to approve this. You'll come straight back here to finish setting up the agent.</p>
+      <form method="post" action="{{ grant_action }}" class="flex gap-2">{% csrf_token %}
+        <button class="btn btn-primary" type="submit">Continue to Shopify</button>
+        <a class="btn btn-secondary" href="{% url 'marketplace:detail' current_shop.pk agent.slug %}">Cancel</a>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

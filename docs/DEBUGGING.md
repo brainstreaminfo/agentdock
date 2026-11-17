@@ -133,7 +133,39 @@ The playground runs the *draft*. Merchants get published versions only: publish
 it. Shops that must grant new permissions stay on the old version until they
 approve.
 
-## 6. Useful commands
+## 6. Installs, schedules and events
+
+**"Install" keeps asking for permissions.** The merchant declined some access
+in Shopify, or Shopify returned fewer scopes. Compare the agent's required
+scopes (Marketplace page) with **Settings → Permissions granted**.
+`check_shop <domain>` shows what Shopify actually granted.
+
+**A scheduled agent didn't run.** It needs all of: the installation is active
+(not paused), "Run on its schedule" is ticked, its version has a cron, the shop
+is installed. Then check:
+- Django Admin → **Periodic tasks** → `agent-installation-<id>` exists, is
+  enabled, and its crontab shows the shop's timezone;
+- `make beat` is running (beat sends the task) and `make worker` too;
+- worker logs: `trigger.schedule_run` (started) or `trigger.schedule_skipped`.
+The agent page shows "next run" in the store's local time.
+
+**An event-triggered agent didn't run on `orders/create`.**
+1. Django Admin → **Webhook events**: did the event arrive? If not, check the
+   subscription: `check_shop <domain>` lists the shop's webhook subscriptions.
+   They're created per shop when an agent using that topic is installed (worker
+   log `webhooks.synced`). A topic whose read scope isn't granted is skipped.
+2. Event status `IGNORED` = no enabled installation listens to that topic.
+3. `products/update`, `inventory_levels/update` and `customers/update` are
+   debounced: the run starts about 60 s after the last update of that product.
+4. If the agent was busy, the event run waits and retries (`run.waiting_for_lock`
+   in the logs) for up to 10 minutes.
+
+**My Team didn't use an agent.** Only installed, active, chat-enabled agents are
+in the team. My Team picks agents from their tagline and description, so make
+those clear in the Studio. The trace of a My Team run shows each `delegate:<slug>`
+step and links to the agent's own run.
+
+## 7. Useful commands
 
 ```bash
 make check                              # lint + types + tests (what CI runs)

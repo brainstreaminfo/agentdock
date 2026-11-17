@@ -1,0 +1,16 @@
+{% load ui %}{# One agent in the Marketplace grid. #}
+<a href="{% url 'marketplace:detail' current_shop.pk agent.slug %}" class="card card-body flex flex-col gap-3 transition hover:border-brand-300 hover:shadow-sm dark:hover:border-brand-700">
+  <div class="flex items-start gap-3">
+    <span class="flex size-10 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-700 dark:bg-brand-700/30 dark:text-brand-100">{% icon agent.icon class="size-5" %}</span>
+    <div class="min-w-0">
+      <p class="font-semibold">{{ agent.name }}</p>
+      <p class="text-xs text-zinc-500">{{ agent.category|default:"General" }}</p>
+    </div>
+  </div>
+  <p class="line-clamp-2 flex-1 text-sm text-zinc-600 dark:text-zinc-400">{{ agent.tagline }}</p>
+  <div class="flex flex-wrap gap-1.5">
+    {% if agent.pk in installed %}<span class="badge badge-green">{% icon "check" class="size-3" %} Installed</span>{% endif %}
+    {% if agent.visibility == "BETA" %}<span class="badge badge-yellow">Beta</span>{% endif %}
+    {% if agent.extra_price %}<span class="badge badge-gray">+${{ agent.extra_price }}/mo</span>{% endif %}
+  </div>
+</a>
