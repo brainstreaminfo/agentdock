@@ -1,0 +1,30 @@
+{% load ui %}{# A change an agent proposed. Buttons swap this card with the updated one. #}
+<div data-proposal class="rounded-xl border {% if proposal.status == 'PENDING' %}border-amber-300 bg-amber-50/60 dark:border-amber-900 dark:bg-amber-950/30{% else %}border-zinc-200 dark:border-zinc-800{% endif %} p-4 text-sm">
+  <div class="mb-2 flex items-center justify-between gap-2">
+    <p class="font-medium">{% icon "pencil" class="size-4 inline" %} {{ proposal.preview.summary|default:proposal.tool }}</p>
+    <span class="badge {% if proposal.status == 'APPLIED' %}badge-green{% elif proposal.status == 'PENDING' %}badge-yellow{% elif proposal.status == 'FAILED' %}badge-red{% else %}badge-gray{% endif %}">{{ proposal.get_status_display }}</span>
+  </div>
+  {% if proposal.preview.reason %}<p class="mb-2 text-xs text-zinc-500">Why: {{ proposal.preview.reason }}</p>{% endif %}
+  {% if proposal.preview.changes %}
+  <div class="space-y-2">
+    {% for c in proposal.preview.changes %}
+    <div class="rounded-lg bg-white p-2.5 dark:bg-zinc-900">
+      <p class="mb-1 text-xs font-medium text-zinc-500">{{ c.field }}{% if c.target %} · {{ c.target }}{% endif %}</p>
+      <div class="grid gap-2 sm:grid-cols-2">
+        <div class="max-h-40 overflow-auto rounded bg-red-50 p-2 text-xs dark:bg-red-950/40"><span class="text-red-600">Before:</span> {{ c.before|default_if_none:"(empty)"|striptags|truncatechars:600 }}</div>
+        <div class="max-h-40 overflow-auto rounded bg-emerald-50 p-2 text-xs dark:bg-emerald-950/40"><span class="text-emerald-700">After:</span> {{ c.after|default_if_none:"(empty)"|striptags|truncatechars:600 }}</div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+  {% if error %}<div class="alert alert-error mt-2">{{ error }}</div>{% elif proposal.status == "FAILED" and proposal.error %}<div class="alert alert-error mt-2">{{ proposal.error }}</div>{% endif %}
+  <div class="mt-3 flex gap-2">
+    {% if proposal.status == "PENDING" %}
+      <button class="btn btn-primary btn-sm" hx-post="{% url 'chat:decide' proposal.shop_id proposal.uuid 'approve' %}" hx-target="closest [data-proposal]" hx-swap="outerHTML">{% icon "check" class="size-3.5" %} Approve</button>
+      <button class="btn btn-secondary btn-sm" hx-post="{% url 'chat:decide' proposal.shop_id proposal.uuid 'reject' %}" hx-target="closest [data-proposal]" hx-swap="outerHTML">Reject</button>
+    {% elif proposal.status == "APPLIED" and proposal.snapshot %}
+      <button class="btn btn-secondary btn-sm" hx-post="{% url 'chat:decide' proposal.shop_id proposal.uuid 'undo' %}" hx-target="closest [data-proposal]" hx-swap="outerHTML" hx-confirm="Restore the previous version?">{% icon "undo-2" class="size-3.5" %} Undo</button>
+    {% endif %}
+  </div>
+</div>

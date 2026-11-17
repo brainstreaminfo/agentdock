@@ -19,7 +19,6 @@ SHOPIFY_API_VERSION = "2026-10"
 SHOPIFY_BASE_SCOPES = ["read_products"]
 # A valid Fernet key used only in tests.
 ENCRYPTION_KEY = "q0V4Wj3r5S2mHqN1oZpXc8Yb6Lk7Jd9Tf0Ga2Rw4Ue8="
-ANTHROPIC_API_KEY = ""
 RESEND_API_KEY = ""
 
 EMAIL_BACKEND = "django.core.mail.backends.locmem.EmailBackend"
@@ -37,6 +36,8 @@ CELERY_BROKER_URL = "memory://"
 CELERY_RESULT_BACKEND = "cache+memory://"
 
 SENTRY_DSN = ""
+RUN_EVENTS_BACKEND = "memory"
+ANTHROPIC_API_KEY = "test-anthropic-key"
 from apps.core.logging import build_logging_config  # noqa: E402
 
 LOGGING = build_logging_config(level="WARNING", json=False)

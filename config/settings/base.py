@@ -46,6 +46,7 @@ INSTALLED_APPS = [
     "apps.runs",
     "apps.tools",
     "apps.studio",
+    "apps.chat",
 ]
 
 MIDDLEWARE = [
@@ -184,8 +185,34 @@ ENCRYPTION_KEY = env.str("ENCRYPTION_KEY", default="")
 
 # --------------------------------------------------------------------------- LLM
 ANTHROPIC_API_KEY = env.str("ANTHROPIC_API_KEY", default="")
-ALLOWED_MODELS = env.list("ALLOWED_MODELS", default=["claude-sonnet-5-5", "claude-opus-5-5"])
-DEFAULT_MODEL = env.str("DEFAULT_MODEL", default="claude-sonnet-5-5")
+ALLOWED_MODELS = env.list(
+    "ALLOWED_MODELS", default=["claude-opus-5-5", "claude-sonnet-5-5", "claude-haiku-5-5"]
+)
+DEFAULT_MODEL = env.str("DEFAULT_MODEL", default="claude-opus-5-5")
+# Max output tokens of ONE model turn (a run has several turns; the per-run total
+# is AgentVersion.max_tokens). Streaming is used, so large values are fine.
+LLM_MAX_TOKENS_PER_TURN = env.int("LLM_MAX_TOKENS_PER_TURN", default=32_000)
+# Per-shop spend cap per day (USD). Phase 6 replaces this with plan limits.
+DEFAULT_DAILY_SPEND_LIMIT_USD = env.float("DEFAULT_DAILY_SPEND_LIMIT_USD", default=10.0)
+# Models that support server-side refusal fallbacks (fallbacks: "default").
+LLM_FALLBACK_MODELS = [
+    "claude-fable-5-2",
+    "claude-fable-5-1",
+    "claude-opus-5-5",
+    "claude-opus-5",
+    "claude-sonnet-5-5",
+]
+# USD per 1M tokens: input, output, cache write (5-min), cache read. Update when
+# Anthropic changes prices; unknown models are logged and costed at 0.
+MODEL_PRICING = {
+    "claude-fable-5-2": {"input": 8.0, "output": 40.0, "cache_write": 10.0, "cache_read": 0.20},
+    "claude-opus-5-5": {"input": 4.0, "output": 20.0, "cache_write": 5.0, "cache_read": 0.20},
+    "claude-opus-5": {"input": 5.0, "output": 25.0, "cache_write": 6.25, "cache_read": 0.50},
+    "claude-sonnet-5-5": {"input": 2.0, "output": 10.0, "cache_write": 2.5, "cache_read": 0.10},
+    "claude-haiku-5-5": {"input": 0.10, "output": 0.50, "cache_write": 0.125, "cache_read": 0.01},
+}
+# Where live run events (streamed text, tool calls) go: "redis" or "memory" (tests).
+RUN_EVENTS_BACKEND = env.str("RUN_EVENTS_BACKEND", default="redis")
 
 # ------------------------------------------------------------------------- email
 RESEND_API_KEY = env.str("RESEND_API_KEY", default="")

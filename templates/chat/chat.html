@@ -1,0 +1,74 @@
+{% extends "layouts/app.html" %}{% load ui static %}
+{% block title %}Chat · {{ current_shop }}{% endblock %}
+{% block head %}<script defer src="{% static 'vendor/chart.umd.js' %}"></script>{% endblock %}
+{% block content %}
+<div class="grid gap-6 lg:grid-cols-4">
+  {# ---------------- left: agents + conversations #}
+  <aside class="space-y-4 lg:col-span-1">
+    <div class="card">
+      <div class="card-header"><h2 class="card-title">Start a chat</h2></div>
+      <div class="space-y-1 p-2">
+        {% for inst in installations %}
+        <form method="post" action="{% url 'chat:start' current_shop.pk %}">{% csrf_token %}
+          <input type="hidden" name="installation" value="{{ inst.pk }}">
+          <button class="nav-link w-full" type="submit">{% icon inst.agent.icon %} <span class="truncate">{{ inst.agent.name }}</span></button>
+        </form>
+        {% empty %}
+          <p class="p-3 text-sm text-zinc-500">No chat agents installed yet. They'll appear here once you install one from the Marketplace.</p>
+        {% endfor %}
+      </div>
+    </div>
+    {% if conversations %}
+    <div class="card">
+      <div class="card-header"><h2 class="card-title">Recent chats</h2></div>
+      <div class="space-y-0.5 p-2">
+        {% for c in conversations %}
+        <a href="{% url 'chat:conversation' current_shop.pk c.pk %}" class="nav-link {% if conversation and c.pk == conversation.pk %}nav-link-active{% endif %}">
+          <span class="truncate">{{ c.title|default:"Untitled" }}</span>
+        </a>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+  </aside>
+
+  {# ---------------- right: conversation #}
+  <section class="lg:col-span-3">
+    {% if conversation %}
+    <div class="card flex min-h-[70vh] flex-col">
+      <div class="card-header">
+        <h1 class="card-title flex items-center gap-2">{% icon conversation.installation.agent.icon|default:"bot" %} {{ conversation.installation.agent.name|default:"My Team" }}</h1>
+        <span class="text-xs text-zinc-500">{{ conversation.installation.get_autonomy_display }}</span>
+      </div>
+      <div id="turns" class="flex-1 space-y-6 overflow-y-auto p-5">
+        {% for turn in turns %}{% include "chat/_turn.html" %}{% empty %}
+          <div id="chat-empty" class="py-10 text-center text-sm text-zinc-500">
+            {% with prompts=conversation.installation.agent.example_prompts %}
+            {% if prompts %}<p class="mb-3">Try asking:</p>
+              <div class="flex flex-wrap justify-center gap-2">{% for p in prompts %}<button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('chat-input').value=this.textContent.trim();document.getElementById('chat-input').focus()">{{ p }}</button>{% endfor %}</div>
+            {% else %}Ask {{ conversation.installation.agent.name }} anything about your store.{% endif %}
+            {% endwith %}
+          </div>
+        {% endfor %}
+      </div>
+      <form class="border-t border-zinc-200 p-4 dark:border-zinc-800"
+            hx-post="{% url 'chat:send' current_shop.pk conversation.pk %}"
+            hx-target="#turns" hx-swap="beforeend"
+            hx-on::before-request="document.getElementById('chat-empty')?.remove()"
+            hx-on::after-request="if(event.detail.successful) this.reset()">
+        <div class="flex items-end gap-2">
+          <textarea id="chat-input" name="message" rows="2" class="input resize-none" placeholder="Message {{ conversation.installation.agent.name }}…" required
+            onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();this.form.requestSubmit();}"></textarea>
+          <button class="btn btn-primary" type="submit">{% icon "send" %}<span class="sr-only">Send</span></button>
+        </div>
+        <p class="help">Enter to send · Shift+Enter for a new line. Changes to your store always show up here for approval first{% if conversation.installation.autonomy == "AUTO" %} (except: this agent acts automatically){% endif %}.</p>
+      </form>
+    </div>
+    {% else %}
+    <div class="card">
+      {% include "components/empty_state.html" with icon="messages-square" title="Pick an agent to chat with" text="Your agents can look things up in your store, write content and suggest changes for you to approve." %}
+    </div>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}

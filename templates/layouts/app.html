@@ -38,7 +38,7 @@
     <nav class="flex-1 space-y-0.5 overflow-y-auto px-3">
       <a href="{% url 'dashboard:home' current_shop.pk %}" class="nav-link {% nav_active 'dashboard:home' %}">{% icon "layout-dashboard" %} Dashboard</a>
       {# Placeholders for later phases, so the final navigation is visible now. #}
-      <span class="nav-link nav-link-disabled">{% icon "messages-square" %} Chat <span class="badge badge-gray ml-auto">Soon</span></span>
+      <a href="{% url 'chat:home' current_shop.pk %}" class="nav-link {% nav_active 'chat:home' 'chat:conversation' %}">{% icon "messages-square" %} Chat</a>
       <span class="nav-link nav-link-disabled">{% icon "store" %} Marketplace <span class="badge badge-gray ml-auto">Soon</span></span>
       <span class="nav-link nav-link-disabled">{% icon "bot" %} My agents <span class="badge badge-gray ml-auto">Soon</span></span>
       <span class="nav-link nav-link-disabled">{% icon "circle-check-big" %} Approvals <span class="badge badge-gray ml-auto">Soon</span></span>

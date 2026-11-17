@@ -285,3 +285,113 @@ probably need the Billing API. That gets decided in Phase 6.
 40. **`sync_tools` runs on every deploy** (pre-deploy command). It never
     overwrites the `enabled` flag, disables code tools that were removed, and
     refuses a custom tool that reuses a built-in key.
+
+---
+
+## Phase 3 — Agent runtime (2026-11-17)
+
+### Claude API changes that affect the spec
+
+41. **Per-agent "temperature" is replaced by "effort".** Current Claude models
+    (Opus 5.5, Sonnet 5.5, Haiku 5.5…) reject `temperature` with an error. How hard
+    the model thinks is set with `effort` instead: `low` / `medium` / `high` /
+    `xhigh` / `max` (`AgentVersion.effort`, default `medium`). Thinking is always on
+    (adaptive); we ask for summarized thinking so traces show the model's reasoning.
+
+42. **Default model `claude-opus-5-5`** (Anthropic's recommended default).
+    `ALLOWED_MODELS` also offers `claude-sonnet-5-5` (cheaper) and
+    `claude-haiku-5-5` (cheapest, for simple agents). Prices are in
+    `settings.MODEL_PRICING`; update them there when Anthropic changes prices.
+
+43. **Refusal fallbacks are on.** If Claude's safety classifier declines a turn,
+    Anthropic re-runs it on a fallback model in the same call (`fallbacks:
+    "default"`, beta `server-side-fallback-2026-07-01`). This applies to the
+    models that support it (`LLM_FALLBACK_MODELS`). After such a fallback,
+    `apps/agents/llm.content_for_history` drops the blocks Anthropic says must not
+    be sent back. If the whole chain refuses, the agent answers politely that it
+    can't help.
+
+44. **Forced tool choice isn't used.** Current models reject `tool_choice`
+    any/tool. Agents use the default (`auto`) and are steered by their
+    instructions.
+
+### Runtime design
+
+45. **Our own loop, not the SDK's beta tool runner.** Every tool call must go
+    through `apps/tools/executor.py` (scopes, approvals, trace), and we need
+    per-turn cost tracking, budgets and live streaming to the browser. The loop is
+    about 100 readable lines in `apps/agents/runtime.py`.
+
+46. **Always streaming, with eager tool-input streaming.** Turns are streamed:
+    text goes live to the chat, and long turns can't hit HTTP timeouts. Tool
+    inputs (e.g. a long new product description) stream as they're written
+    (`eager_input_streaming`). With that on, Anthropic no longer validates tool
+    inputs, which is fine: our executor validates every input with strict Pydantic
+    models. A tool call cut off by the output limit is never executed.
+
+47. **The conversation history is append-only.** `chat.Message` rows hold the
+    exact content blocks sent to and received from Claude, including thinking
+    blocks with their signatures, and they are never edited or deleted. Current
+    models check that earlier turns are unchanged ("preserved thinking"); editing
+    history would break conversations.
+
+48. **Prompt caching:** the system prompt and tool list are built the same way on
+    every turn, with no ids or timestamps; only the date changes, once a day. The
+    request uses automatic caching (`cache_control` on the request), so later turns
+    and conversations reuse the cached prefix. Cache reads cost about 10% of normal
+    input.
+
+49. **Tool names:** our keys use dots (`products.search`), but Claude tool names
+    can't, so the API name is `products__search`. The runtime maps back.
+
+50. **Limits per run:**
+    - `max_steps` model turns;
+    - `max_tokens` output tokens in total, with each turn capped at
+      `LLM_MAX_TOKENS_PER_TURN` (the run stops when fewer than 1,024 remain);
+    - a per-shop daily spend cap (`DEFAULT_DAILY_SPEND_LIMIT_USD`, $10), which
+      Phase 6 replaces with plan limits. "Daily" is the UTC day;
+    - one scheduled/event run at a time per installation (a cache lock);
+      chat isn't limited.
+
+    When a limit stops a run, the chat shows why.
+
+51. **Live events use Redis Streams, not pub/sub** (the spec said pub/sub).
+    Events are kept for an hour, so a browser that connects after the agent
+    started, or reconnects, replays what it missed (`Last-Event-ID`). With pub/sub
+    those events would be lost. The SSE view is async (ASGI), so waiting
+    connections don't hold a worker thread. Tests use an in-memory backend.
+
+52. **The live chat uses a small `EventSource` script** (`static/js/app.js`)
+    instead of the HTMX SSE extension. It's easier to read and debug (events:
+    `status`, `delta`, `tool`, `done`, `failed`). When a run finishes, the server
+    sends the fully rendered answer (Markdown, charts, tables, approval cards),
+    which replaces the live bubble. The failure event is named `failed`, not
+    `error`, because browsers use `error` for connection problems.
+
+53. **Model text is sanitized.** Markdown is rendered to HTML and cleaned with
+    `nh3` (no scripts, no `javascript:` links), because answers can quote store
+    data.
+
+54. **Approving a change requires the ADMIN role** (or OWNER). Members can chat
+    and see proposals but not approve them. Phase 6 team settings may refine this.
+
+### Models added
+
+55. Added in this phase:
+    - `AgentDefinition` / `AgentVersion` (spec §10). Each agent has **one
+      editable draft** (`is_draft=True`, enforced by a database constraint).
+      `draft.publish()` copies it into an immutable numbered version and computes
+      `required_scopes` from the tools;
+    - `AgentInstallation`, so the runtime and chat have something to run (the
+      Marketplace install flow is Phase 5);
+    - `Conversation` / `Message` (`apps/chat`);
+    - `UsageDaily` (`apps/runs`, used by the spend limit).
+
+56. **Example templates are seeded now** (`seed_agent_templates`, spec §7.5,
+    planned for Phase 4), so there are real agents to run. They're marked
+    `is_template` and never published by the platform. `manage.py install_agent
+    --publish` is a development shortcut until the Marketplace exists.
+
+57. **`run_agent --version`**: Django reserves `--version` for every command; this
+    command overrides it so the spec's interface works
+    (`--version 2` / `--version draft`).

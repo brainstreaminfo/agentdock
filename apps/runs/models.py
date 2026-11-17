@@ -39,6 +39,22 @@ class Run(ShopScopedModel):
         "self", null=True, blank=True, on_delete=models.CASCADE, related_name="child_runs"
     )
     agent_slug = models.CharField(max_length=100, blank=True, db_index=True)
+    version = models.ForeignKey(
+        "agents.AgentVersion", null=True, blank=True, on_delete=models.SET_NULL, related_name="runs"
+    )
+    installation = models.ForeignKey(
+        "agents.AgentInstallation",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="runs",
+    )
+    conversation = models.ForeignKey(
+        "chat.Conversation", null=True, blank=True, on_delete=models.CASCADE, related_name="runs"
+    )
+    # Autonomy used for this run (copied from the installation, or set by the caller).
+    autonomy = models.CharField(max_length=8, default="APPROVE")
+    model = models.CharField(max_length=60, blank=True)
     trigger = models.CharField(max_length=12, choices=Trigger.choices)
     status = models.CharField(
         max_length=10, choices=Status.choices, default=Status.QUEUED, db_index=True
@@ -59,6 +75,29 @@ class Run(ShopScopedModel):
 
     def __str__(self) -> str:
         return f"Run {self.pk} ({self.trigger}, {self.status})"
+
+
+class UsageDaily(models.Model):
+    """Runs, tokens and cost per shop, agent and day (for limits and the dashboard)."""
+
+    shop = models.ForeignKey("shops.Shop", on_delete=models.CASCADE, related_name="usage")
+    agent_slug = models.CharField(max_length=100, blank=True)
+    date = models.DateField()
+    runs = models.PositiveIntegerField(default=0)
+    tokens_in = models.PositiveBigIntegerField(default=0)
+    tokens_out = models.PositiveBigIntegerField(default=0)
+    cost_usd = models.DecimalField(max_digits=12, decimal_places=6, default=0)
+
+    class Meta:
+        ordering = ["-date"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["shop", "agent_slug", "date"], name="unique_usage_per_day"
+            )
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.shop} {self.agent_slug or '-'} {self.date}"
 
 
 class RunStep(models.Model):

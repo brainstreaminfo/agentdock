@@ -43,6 +43,9 @@ flower:  ## Celery monitoring UI (http://localhost:5555)
 migrate:  ## Apply database migrations
 	$(MANAGE) migrate
 
+seed:  ## Create the example agent templates
+	$(MANAGE) seed_agent_templates
+
 sync-tools:  ## Register built-in tools in the database (also runs on deploy)
 	$(MANAGE) sync_tools
 

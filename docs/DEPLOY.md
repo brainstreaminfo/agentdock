@@ -63,9 +63,10 @@ SENTRY_DSN=<optional>
 SENTRY_ENVIRONMENT=production
 LOG_LEVEL=INFO
 LOG_JSON=true
-ANTHROPIC_API_KEY=<needed from Phase 3>
-ALLOWED_MODELS=claude-sonnet-5-5,claude-opus-5-5,claude-haiku-5-5
-DEFAULT_MODEL=claude-sonnet-5-5
+ANTHROPIC_API_KEY=<from console.anthropic.com — agents can't run without it>
+ALLOWED_MODELS=claude-opus-5-5,claude-sonnet-5-5,claude-haiku-5-5
+DEFAULT_MODEL=claude-opus-5-5
+DEFAULT_DAILY_SPEND_LIMIT_USD=10
 ```
 
 - `${{Postgres.DATABASE_URL}}` is Railway's syntax for "use the database's URL".
@@ -92,7 +93,7 @@ For each one: **+ New → GitHub Repo → `brainstreaminfo/agentdock`**, then in
 
 | Service name | Custom start command | Notes |
 |---|---|---|
-| `worker` | `celery -A config worker -l info --concurrency 2` | no domain |
+| `worker` | `celery -A config worker -l info --concurrency 4` | no domain; runs every agent, so scale it up as usage grows |
 | `beat` | `celery -A config beat -l info` | no domain, **never more than 1 replica** (2 would run every schedule twice) |
 
 Leave the healthcheck path empty for these two, since they don't serve HTTP.

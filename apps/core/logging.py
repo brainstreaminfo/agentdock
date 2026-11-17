@@ -128,6 +128,7 @@ def build_logging_config(level: str = "INFO", json: bool = True) -> dict[str, An
             "httpx": {"level": "WARNING"},
             "httpcore": {"level": "WARNING"},
             "celery": {"level": "INFO"},
+            "MARKDOWN": {"level": "WARNING"},
         },
     }
 

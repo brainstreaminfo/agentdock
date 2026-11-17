@@ -53,3 +53,11 @@ def nav_active(context: RequestContext, *url_names: str) -> str:
     if match is None:
         return ""
     return "nav-link-active" if match.view_name in url_names else ""
+
+
+@register.filter(name="markdown")
+def markdown_filter(text: str) -> SafeString:
+    """{{ text|markdown }}: Markdown -> sanitized HTML."""
+    from apps.chat.rendering import render_markdown
+
+    return render_markdown(text)

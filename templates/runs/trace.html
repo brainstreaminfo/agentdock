@@ -1,0 +1,43 @@
+{% extends "layouts/app.html" %}{% load ui humanize %}
+{% block title %}Run {{ run.pk }} · {{ current_shop }}{% endblock %}
+{% block content %}
+<a href="javascript:history.back()" class="mb-4 inline-flex items-center gap-1 text-sm">{% icon "arrow-left" %} Back</a>
+<div class="mb-6 flex flex-wrap items-start justify-between gap-4">
+  <div>
+    <h1 class="text-2xl font-semibold tracking-tight">Run #{{ run.pk }}</h1>
+    <p class="mt-1 text-sm text-zinc-500">{{ run.agent_slug|default:"—" }}{% if run.version %} {{ run.version.label }}{% endif %} · {{ run.get_trigger_display }} · {{ run.model|default:"—" }} · {{ run.created_at|date:"j M Y, H:i" }}</p>
+  </div>
+  <span class="badge {% if run.status == 'SUCCEEDED' %}badge-green{% elif run.status == 'FAILED' %}badge-red{% else %}badge-gray{% endif %}">{{ run.get_status_display }}</span>
+</div>
+
+<div class="mb-6 grid gap-4 sm:grid-cols-4">
+  {% include "components/stat_card.html" with label="Steps" value=steps|length icon="list-ordered" %}
+  {% include "components/stat_card.html" with label="Tokens in / out" value=tokens icon="hash" %}
+  {% include "components/stat_card.html" with label="Cost (USD)" value=run.cost_usd|floatformat:4 icon="circle-dollar-sign" %}
+  {% include "components/stat_card.html" with label="Duration" value=duration icon="timer" %}
+</div>
+
+{% if run.error %}<div class="alert alert-error mb-4">{% icon "circle-alert" class="size-4 mt-0.5" %}<div>{{ run.error }}</div></div>{% endif %}
+{% if show_traceback and run.traceback %}<details class="card mb-4 p-4 text-xs"><summary class="cursor-pointer font-medium">Python traceback (staff only)</summary><pre class="mt-2 overflow-x-auto">{{ run.traceback }}</pre></details>{% endif %}
+
+<div class="card divide-y divide-zinc-100 dark:divide-zinc-800">
+  {% for step in steps %}
+  <details class="group p-4">
+    <summary class="flex cursor-pointer items-center gap-3 text-sm">
+      <span class="w-6 text-right text-xs text-zinc-400">{{ step.idx }}</span>
+      {% if step.type == "LLM" %}<span class="badge badge-brand">{% icon "sparkles" class="size-3" %} model</span>{% else %}<span class="badge badge-gray">{% icon "wrench" class="size-3" %} tool</span>{% endif %}
+      <span class="font-mono text-xs">{{ step.name }}</span>
+      {% if step.error %}<span class="badge badge-red">error</span>{% elif step.output.status == "pending_approval" %}<span class="badge badge-yellow">pending approval</span>{% endif %}
+      <span class="ml-auto text-xs text-zinc-500">{{ step.duration_ms|intcomma }} ms{% if step.output.cost_usd %} · ${{ step.output.cost_usd }}{% endif %}</span>
+    </summary>
+    <div class="mt-3 grid gap-3 lg:grid-cols-2">
+      <div><p class="label">Input</p><pre class="max-h-80 overflow-auto rounded-lg bg-zinc-50 p-3 text-xs dark:bg-zinc-950">{{ step.input|pprint }}</pre></div>
+      <div><p class="label">Output</p><pre class="max-h-80 overflow-auto rounded-lg bg-zinc-50 p-3 text-xs dark:bg-zinc-950">{{ step.output|pprint }}</pre></div>
+    </div>
+    {% if step.error %}<pre class="mt-3 overflow-x-auto rounded-lg bg-red-50 p-3 text-xs text-red-800 dark:bg-red-950 dark:text-red-200">{{ step.error }}</pre>{% endif %}
+  </details>
+  {% empty %}
+    {% include "components/empty_state.html" with icon="activity" title="No steps recorded" %}
+  {% endfor %}
+</div>
+{% endblock %}

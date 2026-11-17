@@ -1,0 +1,4 @@
+{% load ui %}<span class="badge {% if status == 'ok' %}badge-green{% elif status == 'error' %}badge-red{% elif status == 'pending_approval' %}badge-yellow{% else %}badge-gray{% endif %}" title="{{ key }}">
+  {% if status == "running" %}{% icon "loader-circle" class="size-3 animate-spin" %}{% elif status == "ok" %}{% icon "check" class="size-3" %}{% elif status == "pending_approval" %}{% icon "clock" class="size-3" %}{% else %}{% icon "x" class="size-3" %}{% endif %}
+  {{ label }}{% if status == "pending_approval" %} · needs approval{% endif %}
+</span>

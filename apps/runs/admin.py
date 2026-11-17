@@ -2,7 +2,7 @@ from django.contrib import admin, messages
 from django.db.models import QuerySet
 from django.http import HttpRequest
 
-from .models import ActionProposal, ActionSnapshot, Run, RunStep
+from .models import ActionProposal, ActionSnapshot, Run, RunStep, UsageDaily
 
 
 class RunStepInline(admin.TabularInline):
@@ -71,3 +71,10 @@ class ActionProposalAdmin(admin.ModelAdmin):
                 self.message_user(request, f"{proposal.tool}: undone")
             except ToolError as exc:
                 self.message_user(request, f"{proposal.tool}: {exc.message}", messages.ERROR)
+
+
+@admin.register(UsageDaily)
+class UsageDailyAdmin(admin.ModelAdmin):
+    list_display = ["date", "shop", "agent_slug", "runs", "tokens_in", "tokens_out", "cost_usd"]
+    list_filter = ["date"]
+    search_fields = ["shop__domain", "agent_slug"]

@@ -42,6 +42,7 @@ dev = [
     "django-debug-toolbar>=4.4",
     "playwright>=1.49",
     "pytest-playwright>=0.6",
+    "pytest-asyncio>=1.5.0",
 ]
 
 [tool.uv]
@@ -89,6 +90,8 @@ python_files = ["test_*.py"]
 testpaths = ["tests"]
 addopts = "-ra --strict-markers -p no:cacheprovider"
 markers = ["e2e: browser tests with Playwright (need a running server)"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
 filterwarnings = [
     "ignore::DeprecationWarning:celery.*",
     "ignore:No directory at:UserWarning",  # whitenoise: staticfiles/ only exists after collectstatic

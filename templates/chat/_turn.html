@@ -1,0 +1,18 @@
+{% load ui %}{# One chat turn: the user's message + the assistant's answer (live or finished). #}
+<div class="space-y-3">
+  <div class="flex justify-end">
+    <div class="max-w-[85%] whitespace-pre-wrap rounded-2xl rounded-br-sm bg-brand-600 px-4 py-2.5 text-sm text-white">{{ turn.run.input.message }}</div>
+  </div>
+  {% if turn.live %}
+  <div class="flex gap-3" data-stream="{% url 'chat:stream' turn.run.shop_id turn.run.pk %}">
+    <span class="mt-1 flex size-7 shrink-0 items-center justify-center rounded-full bg-zinc-100 dark:bg-zinc-800">{% icon "bot" class="size-4" %}</span>
+    <div class="min-w-0 flex-1 space-y-2">
+      <div data-live-tools class="flex flex-wrap gap-1.5"></div>
+      <div data-live-text class="prose-chat text-sm"></div>
+      <p data-live-status class="animate-pulse text-xs text-zinc-500">Thinking…</p>
+    </div>
+  </div>
+  {% else %}
+    {% include "chat/_assistant_turn.html" with run=turn.run items=turn.items %}
+  {% endif %}
+</div>

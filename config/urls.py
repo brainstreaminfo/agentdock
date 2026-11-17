@@ -15,6 +15,7 @@ urlpatterns = [
     path("shopify/", include("apps.shopify_app.urls")),
     path("studio/", include("apps.studio.urls")),
     path("s/<int:shop_id>/", include("apps.dashboard.urls")),
+    path("s/<int:shop_id>/", include("apps.chat.urls")),
 ]
 
 if settings.DEBUG and "debug_toolbar" in settings.INSTALLED_APPS:

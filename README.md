@@ -16,8 +16,11 @@ Shopify app: merchants use our own UI on our domain.
 - Phase 2 (Tool Catalog) done: 50 built-in Shopify tools, an executor with
   approvals and undo, custom GraphQL tools, and Studio tool pages with a Test
   button.
+- Phase 3 (Agent runtime) done: agents and versions, a Claude agent loop with
+  limits and cost tracking, streaming chat with charts and approval cards, run
+  traces, the `run_agent` command, and 3 example agents.
 
-Next: Phase 3, the agent runtime.
+Next: Phase 4, the Agent Studio builder.
 
 ## Run it locally
 
@@ -30,6 +33,7 @@ make install          # .venv + dependencies, creates .env from .env.example
 createdb agenthub
 make migrate
 make sync-tools       # register the built-in tools
+python manage.py seed_agent_templates   # 3 example agents
 make superuser        # staff account for /admin/ (and the Studio later)
 make run              # http://localhost:8000
 make worker           # second terminal: background jobs
@@ -73,7 +77,8 @@ apps/dashboard/         merchant dashboard, onboarding, settings, Alert model
 apps/tools/             Tool Catalog: registry, executor (rules + approvals), custom tools
   catalog/              the 50 built-in tools (<domain>.py + <domain>.graphql)
 apps/runs/              Run, RunStep, ActionProposal, ActionSnapshot
-apps/agents/            ShopMemory, Autonomy (agents arrive in Phase 3)
+apps/agents/            agents, versions, installations, runtime (Claude loop), LLM provider
+apps/chat/             conversations, chat UI, live streaming (SSE), approvals in chat
 apps/studio/            staff-only Studio (/studio/): tool catalog pages
 templates/              Django templates (layouts/, components/, per-app folders)
 assets/tailwind.css     Tailwind source + UI kit classes  →  static/css/app.css

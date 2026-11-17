@@ -1,0 +1,43 @@
+{% load ui %}{# Finished assistant answer for one run. Also sent as HTML in the SSE "done" event. #}
+<div class="flex gap-3">
+  <span class="mt-1 flex size-7 shrink-0 items-center justify-center rounded-full bg-zinc-100 dark:bg-zinc-800">{% icon "bot" class="size-4" %}</span>
+  <div class="min-w-0 flex-1 space-y-3">
+    {% with tools=items %}
+    <div class="flex flex-wrap gap-1.5">
+      {% for item in items %}{% if item.kind == "tool" %}{% include "chat/_tool_chip.html" with label=item.label status=item.status %}{% endif %}{% endfor %}
+    </div>
+    {% endwith %}
+    {% for item in items %}
+      {% if item.kind == "text" %}
+        <div class="prose-chat text-sm">{{ item.html }}</div>
+      {% elif item.kind == "chart" %}
+        <div class="card card-body">
+          {% if item.title %}<p class="mb-2 text-sm font-medium">{{ item.title }}</p>{% endif %}
+          <div class="relative h-64"><canvas data-chart="{{ item.config }}"></canvas></div>
+        </div>
+      {% elif item.kind == "table" %}
+        <div class="card overflow-x-auto">
+          {% if item.title %}<div class="card-header"><span class="card-title">{{ item.title }}</span></div>{% endif %}
+          <table class="table"><thead><tr>{% for c in item.columns %}<th>{{ c }}</th>{% endfor %}</tr></thead>
+          <tbody>{% for row in item.rows %}<tr>{% for cell in row %}<td>{{ cell|default_if_none:"" }}</td>{% endfor %}</tr>{% endfor %}</tbody></table>
+        </div>
+      {% elif item.kind == "draft" %}
+        <div class="card card-body space-y-2" x-data="{ copied: false }">
+          <div class="flex items-center justify-between text-xs text-zinc-500">
+            <span>{% icon "mail" class="size-3.5" %} Draft {{ item.draft.channel }}{% if item.draft.recipient_name %} to {{ item.draft.recipient_name }}{% endif %} · not sent</span>
+            <button type="button" class="btn btn-ghost btn-sm" @click="navigator.clipboard.writeText($refs.body.innerText); copied = true">{% icon "copy" class="size-3.5" %} <span x-text="copied ? 'Copied' : 'Copy'">Copy</span></button>
+          </div>
+          {% if item.draft.subject %}<p class="text-sm font-medium">{{ item.draft.subject }}</p>{% endif %}
+          <div x-ref="body" class="whitespace-pre-wrap text-sm">{{ item.draft.body }}</div>
+        </div>
+      {% elif item.kind == "proposal" %}
+        {% include "chat/_proposal_card.html" with proposal=item.proposal %}
+      {% elif item.kind == "error" %}
+        <div class="alert alert-error">{% icon "circle-alert" class="size-4 mt-0.5" %} <div>Something went wrong: {{ item.message }}</div></div>
+      {% elif item.kind == "notice" %}
+        <div class="alert alert-warning">{% icon "info" class="size-4 mt-0.5" %} <div>{{ item.message }}</div></div>
+      {% endif %}
+    {% endfor %}
+    <a href="{% url 'chat:trace' run.shop_id run.pk %}" class="inline-flex items-center gap-1 text-xs text-zinc-400 hover:text-zinc-600">{% icon "activity" class="size-3" %} Details</a>
+  </div>
+</div>

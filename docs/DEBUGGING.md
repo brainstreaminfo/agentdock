@@ -92,7 +92,40 @@ proposal.
 **A query broke after changing `SHOPIFY_API_VERSION`:** run `make schema` (fetch
 the new schema), then `make test`. The test names the field or input that changed.
 
-## 5. Useful commands
+## 5. Agents and chat
+
+**The chat says "Thinking…" forever.** Runs execute in the Celery worker. Is
+`make worker` running? Is Redis up? In Django Admin → **Runs**, a run stuck in
+`QUEUED` was never picked up by a worker.
+
+**Run an agent from the terminal and watch every step:**
+
+```bash
+python manage.py run_agent --shop demo.myshopify.com --agent sales-qa-analyst \
+    --task "How did sales go last week?"          # add --version draft to test the draft
+```
+
+It prints the streamed answer, each tool call, and a summary with tokens and
+cost. It calls the real Claude API and costs money. It needs `ANTHROPIC_API_KEY`
+in `.env` (or `ant auth login`).
+
+**Why did the agent do that?** Open the run: click "Details" under the answer in
+chat, or Django Admin → **Runs**. Each model turn shows its reasoning summary,
+the tools it called with their inputs and outputs, the stop reason, tokens and
+cost. Staff also see the Python traceback of a failed run.
+
+**"Today's AI budget for this store is used up"** The shop reached
+`DEFAULT_DAILY_SPEND_LIMIT_USD` (UTC day). See Django Admin → **Usage daily**.
+
+**"AI service error 529" / "busy (rate limited)"** Anthropic is overloaded or
+we hit a rate limit. The SDK already retried 3 times; ask again in a minute.
+
+**Unknown variable {{x}} in the run output's `warnings`.** A typo in the agent's
+instructions. Valid variables: `{{shop.name}}`, `{{shop.domain}}`,
+`{{shop.currency}}`, `{{shop.timezone}}`, `{{memory}}`, `{{memory.KEY}}`,
+`{{settings.KEY}}`, `{{today}}`.
+
+## 6. Useful commands
 
 ```bash
 make check                              # lint + types + tests (what CI runs)
@@ -101,6 +134,8 @@ python manage.py check_shop demo.myshopify.com --offline  # without calling Shop
 python manage.py shell                  # poke at the database in Python
 python manage.py sync_tools             # register built-in tools in the database
 make schema                             # download Shopify's schema for SHOPIFY_API_VERSION
+python manage.py seed_agent_templates   # (re)create the 3 example agents
+python manage.py install_agent --shop X --agent Y --publish   # dev: install an agent
 ```
 
 Django Admin (`/admin/`) actions:
