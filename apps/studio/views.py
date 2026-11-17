@@ -30,11 +30,6 @@ from .forms import CustomToolForm, ToolTestForm
 
 
 @staff_required
-def home(request: HttpRequest) -> HttpResponse:
-    return redirect("studio:tools")
-
-
-@staff_required
 def tool_list(request: HttpRequest) -> HttpResponse:
     if not ToolDefinition.objects.filter(kind=ToolDefinition.Kind.CODE).exists():
         sync_tools()  # first visit on a fresh database

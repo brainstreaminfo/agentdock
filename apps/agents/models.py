@@ -12,6 +12,8 @@ Agents (spec §7, §10).
 
 from __future__ import annotations
 
+import hashlib
+import json
 from typing import Any
 
 from django.conf import settings as django_settings
@@ -20,6 +22,7 @@ from django.utils import timezone
 
 from apps.core.models import ShopScopedModel, TimeStampedModel
 from apps.shopify_app import scopes as scope_utils
+from apps.shopify_app.topics import scopes_for_topics
 
 
 class Autonomy(models.TextChoices):
@@ -48,6 +51,17 @@ def default_triggers() -> dict[str, Any]:
 
 def default_allowed_autonomy() -> list[str]:
     return [Autonomy.SUGGEST, Autonomy.APPROVE]
+
+
+class OutputType(models.TextChoices):
+    CHAT = "chat", "Chat replies"
+    REPORT = "report", "Reports"
+    ALERTS = "alerts", "Alerts"
+    ACTIONS = "actions", "Store changes (actions)"
+
+
+def default_output_types() -> list[str]:
+    return [OutputType.CHAT]
 
 
 class AgentDefinition(TimeStampedModel):
@@ -133,6 +147,7 @@ class AgentVersion(TimeStampedModel):
         max_length=8, choices=Autonomy.choices, default=Autonomy.APPROVE
     )
     allowed_autonomy = models.JSONField(default=default_allowed_autonomy, blank=True)
+    output_types = models.JSONField(default=default_output_types, blank=True)
 
     published_at = models.DateTimeField(null=True, blank=True)
     published_by = models.ForeignKey(
@@ -163,9 +178,56 @@ class AgentVersion(TimeStampedModel):
     def chat_enabled(self) -> bool:
         return bool((self.triggers or {}).get("chat", True))
 
+    @property
+    def event_topics(self) -> list[str]:
+        return list((self.triggers or {}).get("events") or [])
+
+    @property
+    def schedule_cron(self) -> str:
+        return str((self.triggers or {}).get("schedule_cron") or "")
+
     def compute_required_scopes(self) -> list[str]:
-        """Union of the scopes of every selected tool (spec §7.1: calculated automatically)."""
-        return scope_utils.union(*[t.scopes for t in self.tools.all()])
+        """
+        Scopes of every selected tool plus those needed to receive the selected
+        Shopify events (spec §7.1: calculated automatically).
+        """
+        return scope_utils.union(
+            *[t.scopes for t in self.tools.all()], scopes_for_topics(self.event_topics)
+        )
+
+    # Fields that define how the agent behaves (copied on publish, hashed below).
+    CONFIG_FIELDS = (
+        "instructions_md",
+        "model",
+        "effort",
+        "max_steps",
+        "max_tokens",
+        "settings_schema",
+        "settings_defaults",
+        "triggers",
+        "default_autonomy",
+        "allowed_autonomy",
+        "output_types",
+    )
+
+    def config_fingerprint(self) -> str:
+        """Short hash of the configuration; test results are tied to it."""
+        data = {f: getattr(self, f) for f in self.CONFIG_FIELDS}
+        data["tools"] = sorted(self.tools.values_list("key", flat=True))
+        raw = json.dumps(data, sort_keys=True, default=str)
+        return hashlib.sha256(raw.encode()).hexdigest()[:16]
+
+    @transaction.atomic
+    def restore_to_draft(self) -> AgentVersion:
+        """Roll back: copy this published version into the draft (then publish it)."""
+        if self.is_draft:
+            raise ValueError("This is already the draft.")
+        draft = self.agent.draft
+        for f in self.CONFIG_FIELDS:
+            setattr(draft, f, getattr(self, f))
+        draft.save()
+        draft.tools.set(self.tools.all())
+        return draft
 
     @transaction.atomic
     def publish(self, *, user: Any = None, changelog: str = "") -> AgentVersion:
@@ -193,6 +255,7 @@ class AgentVersion(TimeStampedModel):
             triggers=self.triggers,
             default_autonomy=self.default_autonomy,
             allowed_autonomy=self.allowed_autonomy,
+            output_types=self.output_types,
             published_at=timezone.now(),
             published_by=user if getattr(user, "is_authenticated", False) else None,
         )
@@ -259,3 +322,46 @@ class ShopMemory(ShopScopedModel):
 
     def __str__(self) -> str:
         return f"{self.key}"
+
+
+class AgentTestCase(TimeStampedModel):
+    """
+    A saved prompt with checks (spec §7.3). `checks` example:
+        {"must_call": ["products.search"], "must_not_call": ["products.update"],
+         "reply_contains": ["tea"], "reply_not_contains": ["sorry"], "max_cost_usd": 0.10}
+    """
+
+    agent = models.ForeignKey(AgentDefinition, on_delete=models.CASCADE, related_name="test_cases")
+    name = models.CharField(max_length=120)
+    prompt = models.TextField()
+    settings = models.JSONField(default=dict, blank=True)
+    checks = models.JSONField(default=dict, blank=True)
+
+    class Meta:
+        ordering = ["agent", "name"]
+
+    def __str__(self) -> str:
+        return self.name
+
+
+class AgentTestResult(TimeStampedModel):
+    class Status(models.TextChoices):
+        PENDING = "PENDING", "Running"
+        PASSED = "PASSED", "Passed"
+        FAILED = "FAILED", "Failed"
+        ERROR = "ERROR", "Error"
+
+    version = models.ForeignKey(AgentVersion, on_delete=models.CASCADE, related_name="test_results")
+    case = models.ForeignKey(AgentTestCase, on_delete=models.CASCADE, related_name="results")
+    # The draft configuration the test ran against (see AgentVersion.config_fingerprint).
+    fingerprint = models.CharField(max_length=16, db_index=True)
+    status = models.CharField(max_length=7, choices=Status.choices, default=Status.PENDING)
+    passed = models.BooleanField(default=False)
+    run = models.ForeignKey("runs.Run", null=True, blank=True, on_delete=models.SET_NULL)
+    details = models.JSONField(default=list, blank=True)  # [{"check": ..., "ok": ..., "note": ...}]
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self) -> str:
+        return f"{self.case} on {self.version}: {self.status}"

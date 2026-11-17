@@ -47,6 +47,7 @@ INSTALLED_APPS = [
     "apps.tools",
     "apps.studio",
     "apps.chat",
+    "apps.billing",
 ]
 
 MIDDLEWARE = [

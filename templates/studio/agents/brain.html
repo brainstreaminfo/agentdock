@@ -1,0 +1,37 @@
+{% extends "studio/agents/_layout.html" %}{% load ui %}
+{% block section %}
+<div class="grid gap-6 lg:grid-cols-5">
+  <form method="post" class="card card-body space-y-5 lg:col-span-3" x-data>{% csrf_token %}
+    <div>
+      {% include "components/form_field.html" with field=form.instructions_md %}
+      <div class="mt-2 flex flex-wrap items-center gap-1.5">
+        <span class="text-xs text-zinc-500">Insert:</span>
+        {% for v in variables %}
+          <button type="button" class="badge badge-gray font-mono hover:bg-zinc-200 dark:hover:bg-zinc-700"
+            @click="const t = document.getElementById('id_instructions_md'); const s = t.selectionStart; t.setRangeText('{{ v }}', s, t.selectionEnd, 'end'); t.focus()">{{ v }}</button>
+        {% endfor %}
+      </div>
+    </div>
+    <div class="grid gap-5 sm:grid-cols-2">
+      {% include "components/form_field.html" with field=form.model %}
+      {% include "components/form_field.html" with field=form.effort %}
+      {% include "components/form_field.html" with field=form.max_steps %}
+      {% include "components/form_field.html" with field=form.max_tokens %}
+    </div>
+    <p class="help">Effort controls how hard the model thinks: low = fast and cheap, high = thorough. Medium suits most agents; use high for complex multi-step work.</p>
+    {% if not agent.is_template %}<button class="btn btn-primary" type="submit">Save brain</button>{% endif %}
+  </form>
+  <div class="lg:col-span-2">
+    <div class="card card-body space-y-2 lg:sticky lg:top-6">
+      <h2 class="card-title">Full system prompt preview</h2>
+      {% if preview %}
+        <p class="text-xs text-zinc-500">As the model sees it for {{ preview_shop }} with default settings (saved draft).</p>
+        {% for w in preview.warnings %}<div class="alert alert-warning text-xs">{{ w }}</div>{% endfor %}
+        <pre class="max-h-[70vh] overflow-auto whitespace-pre-wrap rounded-lg bg-zinc-50 p-3 text-xs dark:bg-zinc-950">{{ preview.text }}</pre>
+      {% else %}
+        <p class="text-sm text-zinc-500">Connect a store you're a member of to preview the prompt.</p>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

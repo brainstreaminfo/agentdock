@@ -1,0 +1,10 @@
+{% extends "studio/agents/_layout.html" %}{% load ui %}
+{% block section %}
+<form method="post" class="card card-body max-w-3xl space-y-6">{% csrf_token %}
+  <div class="alert alert-info text-xs">{% icon "info" class="size-4" %}<div><strong>Suggest only</strong>: changes are proposed and wait for approval. <strong>Ask before changing</strong>: same, but the agent is told it's expected to propose changes. <strong>Act automatically</strong>: changes are applied right away (still recorded and undoable). Every change is approved in the Playground and tests.</div></div>
+  {% include "components/form_field.html" with field=form.default_autonomy %}
+  {% include "components/form_field.html" with field=form.allowed_autonomy %}
+  {% include "components/form_field.html" with field=form.output_types %}
+  {% if not agent.is_template %}<button class="btn btn-primary" type="submit">Save behaviour</button>{% endif %}
+</form>
+{% endblock %}

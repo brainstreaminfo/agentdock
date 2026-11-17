@@ -215,7 +215,9 @@ def _loop(run: Run, provider: LLMProvider, state: _State) -> None:
         if run.installation is not None
         else {**(version.settings_defaults or {}), **(run.input.get("settings") or {})}
     )
-    prompt = build_system_prompt(version, shop=run.shop, agent_settings=agent_settings)
+    prompt = build_system_prompt(
+        version, shop=run.shop, agent_settings=agent_settings, autonomy=run.autonomy
+    )
     state.warnings.extend(prompt.warnings)
     tools, tool_names = build_tools(version)
     ctx = ToolContext(
@@ -223,7 +225,8 @@ def _loop(run: Run, provider: LLMProvider, state: _State) -> None:
         run=run,
         autonomy=run.autonomy,
         agent_slug=run.agent_slug,
-        force_approval=run.trigger == Run.Trigger.PLAYGROUND,
+        # Studio runs never change the store without an explicit approval.
+        force_approval=run.trigger in (Run.Trigger.PLAYGROUND, Run.Trigger.TEST),
     )
 
     for turn in range(1, version.max_steps + 1):

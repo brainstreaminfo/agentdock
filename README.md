@@ -9,6 +9,7 @@ Shopify app: merchants use our own UI on our domain.
 - When something breaks: [`docs/DEBUGGING.md`](docs/DEBUGGING.md)
 - Putting it on a server: [`docs/DEPLOY.md`](docs/DEPLOY.md)
 - How tools work / add a tool: [`docs/TOOL_CATALOG.md`](docs/TOOL_CATALOG.md)
+- Build and publish an agent (no code): [`docs/AGENT_STUDIO_GUIDE.md`](docs/AGENT_STUDIO_GUIDE.md)
 
 **Status:**
 - Phase 1 (Foundation) done: OAuth with expiring tokens, scope upgrades,
@@ -20,7 +21,12 @@ Shopify app: merchants use our own UI on our domain.
   limits and cost tracking, streaming chat with charts and approval cards, run
   traces, the `run_agent` command, and 3 example agents.
 
-Next: Phase 4, the Agent Studio builder.
+- Phase 4 (Agent Studio) done: a no-code builder (listing, brain, tools,
+  settings-form builder, triggers, behaviour, availability), a playground,
+  test cases, publishing with automatic upgrades, versions and rollback, and
+  analytics.
+
+Next: Phase 5, the Marketplace and installs.
 
 ## Run it locally
 
@@ -79,7 +85,9 @@ apps/tools/             Tool Catalog: registry, executor (rules + approvals), cu
 apps/runs/              Run, RunStep, ActionProposal, ActionSnapshot
 apps/agents/            agents, versions, installations, runtime (Claude loop), LLM provider
 apps/chat/             conversations, chat UI, live streaming (SSE), approvals in chat
-apps/studio/            staff-only Studio (/studio/): tool catalog pages
+apps/studio/            staff-only Studio (/studio/): agent builder, playground, tests,
+                        publish, versions, analytics, tool catalog
+apps/billing/           plans (placeholders until Phase 6)
 templates/              Django templates (layouts/, components/, per-app folders)
 assets/tailwind.css     Tailwind source + UI kit classes  →  static/css/app.css
 tests/                  pytest (Shopify mocked with respx)

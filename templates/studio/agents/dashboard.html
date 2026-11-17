@@ -1,0 +1,52 @@
+{% extends "layouts/studio.html" %}{% load ui %}
+{% block title %}Agents · Studio{% endblock %}
+{% block content %}
+<div class="mb-6 flex flex-wrap items-end justify-between gap-4">
+  <div>
+    <h1 class="text-2xl font-semibold tracking-tight">Agents</h1>
+    <p class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">Build, test and publish agents. Stats are for the last 30 days (merchant runs only).</p>
+  </div>
+  <form method="post" action="{% url 'studio:agent_create' %}" class="flex gap-2">{% csrf_token %}
+    <input class="input" name="name" placeholder="New agent name" required>
+    <button class="btn btn-primary" type="submit">{% icon "plus" %} Create</button>
+  </form>
+</div>
+
+<div class="card mb-8 overflow-x-auto">
+  <table class="table">
+    <thead><tr><th>Agent</th><th>Status</th><th class="text-right">Installs</th><th class="text-right">Active shops</th><th class="text-right">Runs</th><th class="text-right">Error rate</th><th class="text-right">Avg cost/run</th><th class="text-right">Revenue/mo</th></tr></thead>
+    <tbody>
+    {% for row in agents %}
+      <tr>
+        <td><a href="{% url 'studio:agent_section' row.agent.slug 'brain' %}" class="flex items-center gap-2 font-medium">{% icon row.agent.icon %} {{ row.agent.name }}</a><span class="text-xs text-zinc-500">{{ row.agent.tagline|truncatechars:60 }}</span></td>
+        <td>{% if row.latest %}<span class="badge badge-green">{{ row.latest.label }}</span>{% else %}<span class="badge badge-gray">Draft</span>{% endif %} <span class="badge badge-gray">{{ row.agent.get_visibility_display }}</span></td>
+        <td class="text-right">{{ row.installs|default:0 }}</td>
+        <td class="text-right">{{ row.active_shops|default:0 }}</td>
+        <td class="text-right">{{ row.runs|default:0 }}</td>
+        <td class="text-right {% if row.error_rate > 10 %}text-red-600{% endif %}">{{ row.error_rate|default:0 }}%</td>
+        <td class="text-right">${{ row.avg_cost|default:0|floatformat:4 }}</td>
+        <td class="text-right">${{ row.revenue|floatformat:2 }}</td>
+      </tr>
+    {% empty %}
+      <tr><td colspan="8">{% include "components/empty_state.html" with icon="bot" title="No agents yet" text="Create one above, or clone a template below to learn how agents are built." %}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<h2 class="mb-3 text-sm font-semibold">Templates <span class="font-normal text-zinc-500">· examples to clone</span></h2>
+<div class="grid gap-4 md:grid-cols-3">
+  {% for t in templates %}
+  <div class="card card-body flex flex-col gap-3">
+    <div class="flex items-center gap-2 font-medium">{% icon t.icon class="size-5 text-brand-600" %} {{ t.name }}</div>
+    <p class="flex-1 text-sm text-zinc-500 dark:text-zinc-400">{{ t.tagline }}</p>
+    <div class="flex gap-2">
+      <a href="{% url 'studio:agent_section' t.slug 'brain' %}" class="btn btn-secondary btn-sm">View</a>
+      <form method="post" action="{% url 'studio:agent_clone' t.slug %}">{% csrf_token %}<button class="btn btn-primary btn-sm">{% icon "copy" class="size-3.5" %} Clone</button></form>
+    </div>
+  </div>
+  {% empty %}
+    <p class="text-sm text-zinc-500">Run <code>python manage.py seed_agent_templates</code> to add the example templates.</p>
+  {% endfor %}
+</div>
+{% endblock %}

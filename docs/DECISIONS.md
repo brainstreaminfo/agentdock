@@ -395,3 +395,72 @@ probably need the Billing API. That gets decided in Phase 6.
 57. **`run_agent --version`**: Django reserves `--version` for every command; this
     command overrides it so the spec's interface works
     (`--version 2` / `--version draft`).
+
+---
+
+## Phase 4 — Agent Studio (2026-11-17)
+
+58. **One draft per agent, edited section by section.** The builder only changes
+    the draft. Listing and availability fields (name, tagline, visibility,
+    price…) live on `AgentDefinition` and apply immediately. Everything that
+    changes behaviour lives on the version (`AgentVersion.CONFIG_FIELDS`) and only
+    reaches merchants on **Publish**.
+
+59. **Templates are read-only.** The 3 seeded templates can be viewed and
+    **cloned**, but not edited or published (POSTs are refused). A clone copies the
+    draft, tools and test cases.
+
+60. **Merchant settings form = JSON Schema**, built from a simple field list
+    (`apps/agents/settings_schema.py`). Field types: text, textarea, number,
+    select, multi-select, toggle, product picker, collection picker.
+    - The same module renders the schema as a Django form (playground now,
+      merchant install page in Phase 5) and validates values with `jsonschema`.
+    - Field order is stored in `x-order`, because Postgres `jsonb` doesn't keep
+      key order.
+    - Product and collection pickers store lists of Shopify ids. The Studio
+      preview shows a text box; Phase 5 turns it into a search picker.
+
+61. **Event triggers add their scopes.** `compute_required_scopes()` is the union
+    of the tools' scopes and the read scope each selected Shopify event needs
+    (`apps/shopify_app/topics.py`). Cron schedules are validated with Celery's own
+    crontab parser.
+
+62. **Autonomy is told to the model.** The system prompt gets one paragraph for
+    the run's autonomy level. *Suggest*: change things only when asked.
+    *Approve*: propose changes freely. *Auto*: changes apply immediately, be
+    careful. Approval enforcement itself stays in the executor.
+
+63. **Playground and tests never apply changes.** Runs with trigger
+    `PLAYGROUND` or `TEST` always send mutations to approval, even for AUTO
+    agents. After a test, its pending proposals are rejected automatically.
+    Playground chats are `Conversation`s linked to a version (not an
+    installation), are hidden from the merchant chat list, and run on stores the
+    staff member belongs to.
+
+64. **Test results are tied to the draft's configuration fingerprint** (a hash of
+    the config fields and tool keys). The publish page shows whether tests passed
+    *on this exact draft*. Tests run as Celery tasks (one per case), and the
+    results table refreshes itself every 2 seconds while any are running.
+
+65. **Publishing upgrades installs automatically when it's safe.** An
+    installation moves to the new version immediately if the agent allows
+    auto-upgrade and the shop already granted every required scope. Otherwise
+    it stays on its version: Phase 5 shows the merchant "Update available"
+    (`upgrades.pending_update`) and asks for the new permissions.
+
+66. **Rollback = restore + publish.** "Restore as draft" copies an old version
+    into the draft; publishing it creates a new version number. Published
+    versions are never edited.
+
+67. **Studio stats exclude playground, test and tool-test runs**, so analytics
+    reflect merchant usage. "Revenue" is currently extra price × active shops;
+    Phase 6 adds plan revenue from billing.
+
+68. **Screenshots use Django's default file storage** (`MEDIA_ROOT` locally).
+    Railway's disk is wiped on every deploy, so before launch set up persistent
+    storage (an S3-compatible bucket via `django-storages`). Added to the Phase 6
+    launch checklist.
+
+69. **Plans are placeholders in `apps/billing/plans.py`** (Starter, Growth, Pro,
+    spec §11), so agents can be assigned to plans now. Billing and enforcement
+    arrive in Phase 6.

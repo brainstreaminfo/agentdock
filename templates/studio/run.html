@@ -1,0 +1,10 @@
+{% extends "layouts/studio.html" %}{% load ui %}
+{% block title %}Run {{ run.pk }} · Studio{% endblock %}
+{% block head %}{% if live %}<meta http-equiv="refresh" content="3">{% endif %}{% endblock %}
+{% block content %}
+<a href="javascript:history.back()" class="mb-4 inline-flex items-center gap-1 text-sm">{% icon "arrow-left" %} Back</a>
+<p class="mb-2 text-sm text-zinc-500">Store: {{ run.shop }}{% if run.output.text %}{% endif %}</p>
+{% if live %}<div class="alert alert-info mb-4">{% icon "loader-circle" class="size-4 animate-spin" %}<div>Running… this page refreshes every 3 seconds.</div></div>{% endif %}
+{% if run.output.text %}<div class="card card-body mb-4"><p class="label">Final answer</p><div class="prose-chat text-sm">{{ run.output.text|markdown }}</div></div>{% endif %}
+{% include "runs/_trace_body.html" %}
+{% endblock %}

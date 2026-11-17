@@ -1,0 +1,15 @@
+{% extends "studio/agents/_layout.html" %}{% load ui %}
+{% block section %}
+<form method="post" class="card card-body max-w-3xl space-y-6">{% csrf_token %}
+  <p class="text-sm text-zinc-500">Who can see and install the agent. Applies immediately (not versioned).</p>
+  <div class="grid gap-5 sm:grid-cols-2">
+    {% include "components/form_field.html" with field=form.visibility %}
+    {% include "components/form_field.html" with field=form.extra_price %}
+  </div>
+  {% include "components/form_field.html" with field=form.allowed_shops %}
+  {% include "components/form_field.html" with field=form.plans %}
+  {% include "components/form_field.html" with field=form.featured %}
+  {% include "components/form_field.html" with field=form.auto_upgrade %}
+  {% if not agent.is_template %}<button class="btn btn-primary" type="submit">Save availability</button>{% endif %}
+</form>
+{% endblock %}

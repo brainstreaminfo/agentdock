@@ -125,6 +125,14 @@ instructions. Valid variables: `{{shop.name}}`, `{{shop.domain}}`,
 `{{shop.currency}}`, `{{shop.timezone}}`, `{{memory}}`, `{{memory.KEY}}`,
 `{{settings.KEY}}`, `{{today}}`.
 
+**A Studio test stays "Running…".** Tests run in the Celery worker: is
+`make worker` running? Each test has a **Trace** link once it starts.
+
+**An agent works in the playground but merchants still get the old behaviour.**
+The playground runs the *draft*. Merchants get published versions only: publish
+it. Shops that must grant new permissions stay on the old version until they
+approve.
+
 ## 6. Useful commands
 
 ```bash

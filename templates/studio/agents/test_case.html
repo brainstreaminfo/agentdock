@@ -1,0 +1,21 @@
+{% extends "studio/agents/_layout.html" %}{% load ui %}
+{% block section %}
+<form method="post" class="card card-body max-w-3xl space-y-5">{% csrf_token %}
+  <h2 class="card-title">{% if case.pk %}Edit test{% else %}New test{% endif %}</h2>
+  {% include "components/form_field.html" with field=form.name %}
+  {% include "components/form_field.html" with field=form.prompt %}
+  <div class="grid gap-5 sm:grid-cols-2">
+    {% include "components/form_field.html" with field=form.must_call %}
+    {% include "components/form_field.html" with field=form.must_not_call %}
+    {% include "components/form_field.html" with field=form.reply_contains %}
+    {% include "components/form_field.html" with field=form.reply_not_contains %}
+    {% include "components/form_field.html" with field=form.max_cost_usd %}
+    {% include "components/form_field.html" with field=form.settings_json %}
+  </div>
+  <div class="flex gap-2">
+    {% if not agent.is_template %}<button class="btn btn-primary" type="submit">Save test</button>{% endif %}
+    <a href="{% url 'studio:tests' agent.slug %}" class="btn btn-ghost">Cancel</a>
+    {% if case.pk and not agent.is_template %}<button class="btn btn-ghost ml-auto text-red-600" name="delete" value="1" onclick="return confirm('Delete this test?')">Delete</button>{% endif %}
+  </div>
+</form>
+{% endblock %}

@@ -25,6 +25,7 @@ class Run(ShopScopedModel):
         EVENT = "EVENT", "Shopify event"
         MANUAL = "MANUAL", "Run now"
         PLAYGROUND = "PLAYGROUND", "Playground"
+        TEST = "TEST", "Studio test case"
         TOOL_TEST = "TOOL_TEST", "Tool test (Studio)"
 
     class Status(models.TextChoices):

@@ -1,0 +1,24 @@
+{% extends "studio/agents/_layout.html" %}{% load ui %}
+{% block section %}
+<div class="card overflow-x-auto">
+  <table class="table">
+    <thead><tr><th>Version</th><th>Changelog</th><th>Published</th><th class="text-right">Installs</th><th></th></tr></thead>
+    <tbody>
+    {% for row in rows %}
+      <tr>
+        <td><span class="badge {% if forloop.first %}badge-green{% else %}badge-gray{% endif %}">{{ row.version.label }}</span></td>
+        <td class="max-w-md text-sm">{{ row.version.changelog|linebreaksbr }}</td>
+        <td class="text-xs text-zinc-500">{{ row.version.published_at|date:"j M Y, H:i" }}<br>{{ row.version.published_by|default:"" }}</td>
+        <td class="text-right">{{ row.installs }}</td>
+        <td class="text-right">{% if not forloop.first and not agent.is_template %}
+          <form method="post" action="{% url 'studio:restore' agent.slug row.version.number %}">{% csrf_token %}<button class="btn btn-secondary btn-sm" onclick="return confirm('Replace the current draft with {{ row.version.label }}?')">{% icon "undo-2" class="size-3.5" %} Restore as draft</button></form>
+        {% endif %}</td>
+      </tr>
+    {% empty %}
+      <tr><td colspan="5">{% include "components/empty_state.html" with icon="history" title="Not published yet" %}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+<p class="help mt-3">To roll back: restore an older version as the draft, then publish it (it becomes a new version).</p>
+{% endblock %}

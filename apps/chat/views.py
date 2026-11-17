@@ -56,12 +56,19 @@ def chat_home(
     request: HttpRequest, shop_id: int, conversation_id: int | None = None
 ) -> HttpResponse:
     shop = request.shop  # type: ignore[attr-defined]
-    conversations = Conversation.objects.for_shop(shop).filter(user=request.user)[:30]
+    # Playground conversations (Studio) have no installation and aren't listed here.
+    conversations = Conversation.objects.for_shop(shop).filter(
+        user=request.user, installation__isnull=False
+    )[:30]
     conversation = None
     turns = []
     if conversation_id is not None:
         conversation = get_object_or_404(
-            Conversation, pk=conversation_id, shop=shop, user=request.user
+            Conversation,
+            pk=conversation_id,
+            shop=shop,
+            user=request.user,
+            installation__isnull=False,
         )
         for run in conversation.runs.order_by("id"):
             turns.append(

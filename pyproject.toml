@@ -25,6 +25,7 @@ dependencies = [
     "nh3>=0.2",
     "graphql-core>=3.3.2",
     "jsonschema>=4.26.0",
+    "pillow>=13.0.0",
 ]
 
 [dependency-groups]

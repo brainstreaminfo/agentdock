@@ -1,0 +1,33 @@
+{% extends "studio/agents/_layout.html" %}{% load ui %}
+{% block section %}
+<form method="post" enctype="multipart/form-data" class="card card-body max-w-3xl space-y-5">{% csrf_token %}
+  <p class="text-sm text-zinc-500">How the agent appears in the Marketplace. Listing changes apply immediately (they aren't versioned).</p>
+  <div class="grid gap-5 sm:grid-cols-2">
+    {% include "components/form_field.html" with field=form.name %}
+    <div x-data="{ icon: '{{ form.icon.value|default:'bot' }}' }">
+      {% include "components/form_field.html" with field=form.icon %}
+      <p class="help">Browse names at lucide.dev/icons (e.g. pen-line, package, chart-line).</p>
+    </div>
+    {% include "components/form_field.html" with field=form.category %}
+    {% include "components/form_field.html" with field=form.tagline %}
+  </div>
+  {% include "components/form_field.html" with field=form.description_md %}
+  <div class="grid gap-5 sm:grid-cols-2">
+    {% include "components/form_field.html" with field=form.capabilities_text %}
+    {% include "components/form_field.html" with field=form.example_prompts_text %}
+  </div>
+  <div class="space-y-2">
+    <p class="label">Screenshots</p>
+    <div class="flex flex-wrap gap-3">
+      {% for url in agent.screenshots %}
+      <label class="relative block w-40 overflow-hidden rounded-lg border border-zinc-200 text-xs dark:border-zinc-800">
+        <img src="{{ url }}" alt="" class="h-24 w-full object-cover">
+        <span class="flex items-center gap-1 p-1.5"><input type="checkbox" name="remove_screenshot" value="{{ url }}"> Remove</span>
+      </label>
+      {% endfor %}
+    </div>
+    {% include "components/form_field.html" with field=form.screenshot %}
+  </div>
+  {% if not agent.is_template %}<button class="btn btn-primary" type="submit">Save listing</button>{% endif %}
+</form>
+{% endblock %}

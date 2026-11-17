@@ -1,0 +1,19 @@
+{# Usage: {% include "components/form_field.html" with field=form.name %} — label, widget, help, errors. #}
+{% with widget=field.field.widget.input_type %}
+<div class="space-y-1.5">
+  {% if widget == "checkbox" and not field.field.choices %}
+    <label class="flex items-start gap-2 text-sm">{{ field }} <span><span class="font-medium">{{ field.label }}</span>{% if field.help_text %}<span class="help block">{{ field.help_text }}</span>{% endif %}</span></label>
+  {% elif field.field.choices and widget == "checkbox" %}
+    <p class="label">{{ field.label }}</p>
+    <div class="grid gap-1.5 sm:grid-cols-2">
+      {% for choice in field %}<label class="flex items-center gap-2 text-sm">{{ choice.tag }} {{ choice.choice_label }}</label>{% endfor %}
+    </div>
+    {% if field.help_text %}<p class="help">{{ field.help_text }}</p>{% endif %}
+  {% else %}
+    <label class="label" for="{{ field.id_for_label }}">{{ field.label }}{% if field.field.required %} <span class="text-red-500">*</span>{% endif %}</label>
+    {{ field }}
+    {% if field.help_text %}<p class="help">{{ field.help_text }}</p>{% endif %}
+  {% endif %}
+  {% for e in field.errors %}<p class="field-error">{{ e }}</p>{% endfor %}
+</div>
+{% endwith %}

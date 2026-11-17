@@ -1,0 +1,20 @@
+{% extends "studio/agents/_layout.html" %}{% load ui %}
+{% block section %}
+<form method="post" class="card card-body max-w-3xl space-y-6" x-data="{ schedule: '{{ form.schedule.value|default:'' }}' }">{% csrf_token %}
+  {% include "components/form_field.html" with field=form.chat %}
+  <div class="grid gap-4 sm:grid-cols-2">
+    <div class="space-y-1.5">
+      <label class="label" for="id_schedule">{{ form.schedule.label }}</label>
+      <select name="schedule" id="id_schedule" class="input" x-model="schedule">
+        {% for value, label in form.fields.schedule.choices %}<option value="{{ value }}" {% if form.schedule.value == value %}selected{% endif %}>{{ label }}</option>{% endfor %}
+      </select>
+      <p class="help">Runs in each shop's own timezone.</p>
+    </div>
+    <div x-show="schedule === 'custom'" x-cloak>{% include "components/form_field.html" with field=form.custom_cron %}</div>
+  </div>
+  {% for e in form.non_field_errors %}<p class="field-error">{{ e }}</p>{% endfor %}
+  {% include "components/form_field.html" with field=form.events %}
+  <p class="help">Each event adds the read permission it needs to the agent's required permissions. A manual "Run now" button is always available to merchants.</p>
+  {% if not agent.is_template %}<button class="btn btn-primary" type="submit">Save triggers</button>{% endif %}
+</form>
+{% endblock %}

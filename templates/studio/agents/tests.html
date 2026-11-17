@@ -1,0 +1,14 @@
+{% extends "studio/agents/_layout.html" %}{% load ui %}
+{% block section %}
+<div class="mb-4 flex flex-wrap items-end justify-between gap-4">
+  <p class="max-w-xl text-sm text-zinc-500">Saved prompts with checks, run against the draft. Store changes are never applied during tests. Results are kept per draft version: after you edit the draft, run them again.</p>
+  <div class="flex flex-wrap items-end gap-2">
+    {% if not agent.is_template %}<a href="{% url 'studio:test_case_new' agent.slug %}" class="btn btn-secondary">{% icon "plus" %} Add test</a>{% endif %}
+    <form method="post" action="{% url 'studio:tests_run' agent.slug %}" class="flex items-end gap-2">{% csrf_token %}
+      <div class="w-56">{{ shop_form.shop }}</div>
+      <button class="btn btn-primary" type="submit">{% icon "play" %} Run all tests</button>
+    </form>
+  </div>
+</div>
+{% include "studio/agents/_tests_table.html" %}
+{% endblock %}

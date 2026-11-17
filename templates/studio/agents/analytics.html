@@ -1,0 +1,25 @@
+{% extends "studio/agents/_layout.html" %}{% load ui static %}
+{% block head %}<script defer src="{% static 'vendor/chart.umd.js' %}"></script>{% endblock %}
+{% block section %}
+<div class="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+  {% include "components/stat_card.html" with label="Installs" value=stats.installs|default:"0" icon="download" %}
+  {% include "components/stat_card.html" with label="Active shops" value=stats.active_shops|default:"0" icon="store" %}
+  {% include "components/stat_card.html" with label="Runs (30 days)" value=stats.runs|default:"0" icon="activity" %}
+  {% include "components/stat_card.html" with label="Error rate" value=stats.error_rate|default:"0"|stringformat:"s"|add:"%" icon="triangle-alert" %}
+  {% include "components/stat_card.html" with label="Avg cost / run" value=stats.avg_cost|default:0|floatformat:4 icon="circle-dollar-sign" %}
+</div>
+<div class="card card-body mb-6"><p class="mb-2 text-sm font-medium">Runs per day</p><div class="relative h-64"><canvas data-chart="{{ chart }}"></canvas></div></div>
+<div class="card overflow-x-auto">
+  <div class="card-header"><h2 class="card-title">Recent runs</h2></div>
+  <table class="table">
+    <thead><tr><th>Run</th><th>Shop</th><th>Trigger</th><th>Status</th><th class="text-right">Cost</th><th>When</th></tr></thead>
+    <tbody>
+    {% for run in recent %}
+      <tr><td><a href="{% url 'studio:run' run.pk %}">#{{ run.pk }}</a></td><td>{{ run.shop }}</td><td>{{ run.get_trigger_display }}</td>
+        <td><span class="badge {% if run.status == 'SUCCEEDED' %}badge-green{% elif run.status == 'FAILED' %}badge-red{% else %}badge-gray{% endif %}">{{ run.get_status_display }}</span></td>
+        <td class="text-right">${{ run.cost_usd|floatformat:4 }}</td><td class="text-xs text-zinc-500">{{ run.created_at|timesince }} ago</td></tr>
+    {% empty %}<tr><td colspan="6" class="text-sm text-zinc-500">No runs yet.</td></tr>{% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

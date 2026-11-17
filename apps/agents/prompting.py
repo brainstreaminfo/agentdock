@@ -96,8 +96,23 @@ def render_instructions(
     return RenderedPrompt(text=text.strip(), warnings=warnings)
 
 
+AUTONOMY_RULES = {
+    "SUGGEST": "## Your autonomy: suggest only\nPrefer advice and drafts. Only use tools that "
+    "change the store when the merchant explicitly asks for a change; every change waits for "
+    "their approval.",
+    "APPROVE": "## Your autonomy: ask before changing\nYou may propose store changes with tools "
+    "when they help the merchant's goal. Every change waits for their approval.",
+    "AUTO": "## Your autonomy: act automatically\nStore changes you make are applied right "
+    "away (they can be undone). Be careful and precise; when unsure, ask first.",
+}
+
+
 def build_system_prompt(
-    version: AgentVersion, *, shop: Shop, agent_settings: dict[str, Any]
+    version: AgentVersion,
+    *,
+    shop: Shop,
+    agent_settings: dict[str, Any],
+    autonomy: str | None = None,
 ) -> RenderedPrompt:
     memory = {m.key: m.value for m in ShopMemory.objects.for_shop(shop)}
     instructions = render_instructions(
@@ -123,6 +138,7 @@ def build_system_prompt(
                 for k, v in sorted(agent_settings.items())
             )
         )
+    sections.append(AUTONOMY_RULES.get(autonomy or version.default_autonomy, ""))
     sections.append(PLATFORM_RULES)
     return RenderedPrompt(text="\n\n".join(sections), warnings=instructions.warnings)
 

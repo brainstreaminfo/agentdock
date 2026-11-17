@@ -1,0 +1,56 @@
+{% extends "studio/agents/_layout.html" %}{% load ui static %}
+{% block head %}<script defer src="{% static 'vendor/chart.umd.js' %}"></script>{% endblock %}
+{% block section %}
+<div class="grid gap-6 lg:grid-cols-4">
+  <aside class="space-y-4">
+    <form method="post" action="{% url 'studio:playground_start' agent.slug %}" class="card card-body space-y-3">{% csrf_token %}
+      <h2 class="card-title">New playground chat</h2>
+      {% include "components/form_field.html" with field=shop_form.shop %}
+      <div class="space-y-1.5"><label class="label" for="pg-version">Version</label>
+        <select id="pg-version" name="version" class="input">{% for v in versions %}<option value="{{ v.pk }}">{{ v.label }}{% if v.is_draft %} (current edits){% endif %}</option>{% endfor %}</select>
+      </div>
+      {% for field in settings_form %}{% include "components/form_field.html" with field=field %}{% endfor %}
+      <button class="btn btn-primary w-full" type="submit">{% icon "message-square-plus" %} Start chat</button>
+      <p class="help">Store changes always wait for approval here, so you can test safely on your dev store.</p>
+    </form>
+    <form method="post" action="{% url 'studio:playground_trigger' agent.slug %}" class="card card-body space-y-3">{% csrf_token %}
+      <h2 class="card-title">Simulate a scheduled run</h2>
+      {% include "components/form_field.html" with field=shop_form.shop %}
+      <button class="btn btn-secondary w-full" type="submit">{% icon "clock" %} Run draft now</button>
+    </form>
+    {% if recent %}
+    <div class="card">
+      <div class="card-header"><h2 class="card-title">Recent</h2></div>
+      <div class="space-y-0.5 p-2">{% for c in recent %}<a class="nav-link {% if conversation and c.pk == conversation.pk %}nav-link-active{% endif %}" href="?c={{ c.pk }}"><span class="truncate">{{ c.title }}</span></a>{% endfor %}</div>
+    </div>
+    {% endif %}
+  </aside>
+
+  <section class="lg:col-span-3">
+    {% if conversation %}
+    <div class="card flex min-h-[65vh] flex-col">
+      <div class="card-header">
+        <span class="card-title">{{ conversation.title }}</span>
+        <span class="text-xs text-zinc-500">{{ conversation.shop }}{% if conversation.playground_settings %} · {{ conversation.playground_settings }}{% endif %}</span>
+      </div>
+      <div id="turns" class="flex-1 space-y-6 overflow-y-auto p-5">
+        {% for turn in turns %}{% include "chat/_turn.html" %}{% empty %}<p id="chat-empty" class="py-10 text-center text-sm text-zinc-500">Say something to {{ agent.name }}.</p>{% endfor %}
+      </div>
+      <form class="border-t border-zinc-200 p-4 dark:border-zinc-800"
+            hx-post="{% url 'studio:playground_send' agent.slug conversation.pk %}" hx-target="#turns" hx-swap="beforeend"
+            hx-on::before-request="document.getElementById('chat-empty')?.remove()"
+            hx-on::after-request="if(event.detail.successful) this.reset()">
+        <div class="flex items-end gap-2">
+          <textarea id="chat-input" name="message" rows="2" class="input resize-none" required placeholder="Message the {{ conversation.version.label }}…"
+            onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();this.form.requestSubmit();}"></textarea>
+          <button class="btn btn-primary" type="submit">{% icon "send" %}</button>
+        </div>
+        <p class="help">Each answer has a "Details" link with the full trace (model turns, tool calls, cost).</p>
+      </form>
+    </div>
+    {% else %}
+      <div class="card">{% include "components/empty_state.html" with icon="flask-conical" title="Test the agent on your own store" text="Pick a store and version on the left and start a chat. You'll see every tool call and what it costs." %}</div>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}

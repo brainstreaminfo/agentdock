@@ -32,6 +32,11 @@ class Conversation(ShopScopedModel):
         related_name="conversations",
     )
     title = models.CharField(max_length=200, blank=True)
+    # Studio playground: chat with a specific version (usually the draft).
+    version = models.ForeignKey(
+        "agents.AgentVersion", null=True, blank=True, on_delete=models.CASCADE, related_name="+"
+    )
+    playground_settings = models.JSONField(default=dict, blank=True)
 
     class Meta:
         ordering = ["-updated_at"]

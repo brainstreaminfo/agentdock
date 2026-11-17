@@ -8,7 +8,7 @@
       {{ APP_NAME }} Studio
     </div>
     <nav class="flex-1 space-y-0.5 px-3">
-      <span class="nav-link nav-link-disabled">{% icon "bot" %} Agents <span class="badge badge-gray ml-auto">Phase 4</span></span>
+      <a href="{% url 'studio:home' %}" class="nav-link {% nav_active 'studio:home' 'studio:agent_section' 'studio:playground' 'studio:tests' 'studio:test_case_new' 'studio:test_case_edit' 'studio:publish' 'studio:versions' 'studio:analytics' %}">{% icon "bot" %} Agents</a>
       <a href="{% url 'studio:tools' %}" class="nav-link {% nav_active 'studio:tools' 'studio:tool_detail' 'studio:tool_create' 'studio:tool_edit' %}">{% icon "wrench" %} Tool catalog</a>
       <a href="{% url 'admin:index' %}" class="nav-link">{% icon "shield" %} Django Admin</a>
     </nav>

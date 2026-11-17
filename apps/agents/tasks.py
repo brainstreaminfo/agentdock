@@ -27,3 +27,19 @@ def execute_run_task(self, run_id: int) -> str:  # type: ignore[no-untyped-def]
         log.info("run.skipped_not_queued", run_id=run_id)
         return "skipped"
     return execute_run(run).status
+
+
+@shared_task(acks_late=True)
+def run_agent_test_task(result_id: int) -> str:
+    """Execute one Studio test case and evaluate its checks."""
+    from .models import AgentTestResult
+    from .testing import run_test
+
+    result = (
+        AgentTestResult.objects.select_related("run__shop", "run__version__agent", "case")
+        .filter(pk=result_id, status=AgentTestResult.Status.PENDING)
+        .first()
+    )
+    if result is None or result.run is None:
+        return "skipped"
+    return run_test(result).status
