@@ -22,6 +22,10 @@ fetch "https://cdn.jsdelivr.net/npm/htmx-ext-sse@${HTMX_SSE_VERSION}/sse.js" "$V
 fetch "https://cdn.jsdelivr.net/npm/alpinejs@${ALPINE_VERSION}/dist/cdn.min.js" "$V/alpine.min.js"
 fetch "https://cdn.jsdelivr.net/npm/chart.js@${CHARTJS_VERSION}/dist/chart.umd.js" "$V/chart.umd.js"
 
+# Remove "sourceMappingURL" comments: we don't ship .map files, and Django's
+# production static storage fails the build on references to missing files.
+for f in "$V"/*.js; do sed -i.bak '/sourceMappingURL=/d' "$f" && rm -f "$f.bak"; done
+
 echo "Downloading Lucide icons…"
 tmp=$(mktemp -d)
 curl -fsSL "https://registry.npmjs.org/lucide-static/-/lucide-static-${LUCIDE_VERSION}.tgz" -o "$tmp/lucide.tgz"

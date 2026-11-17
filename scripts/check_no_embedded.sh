@@ -4,7 +4,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 pattern='polaris|app-bridge|appbridge|app_bridge|shopify-app-bridge|cdn\.shopify\.com/shopifycloud/app-bridge'
-if grep -RniE "$pattern" apps config templates static/js static/src pyproject.toml 2>/dev/null; then
+if grep -RniE "$pattern" apps config templates static/js assets pyproject.toml 2>/dev/null; then
   echo "✗ Found Polaris / App Bridge references (see above). This app must stay non-embedded."
   exit 1
 fi

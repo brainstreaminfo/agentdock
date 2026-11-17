@@ -7,6 +7,7 @@ Shopify app: merchants use our own UI on our domain.
 - Full brief: [`docs/PROJECT_SPEC.md`](docs/PROJECT_SPEC.md)
 - Why things are the way they are: [`docs/DECISIONS.md`](docs/DECISIONS.md)
 - When something breaks: [`docs/DEBUGGING.md`](docs/DEBUGGING.md)
+- Putting it on a server: [`docs/DEPLOY.md`](docs/DEPLOY.md)
 
 **Status:** Phase 1 (Foundation) done: OAuth install/launch/uninstall with
 expiring tokens, scope upgrades, magic-link login, store switcher, compliance
@@ -63,6 +64,6 @@ apps/shopify_app/       OAuth, launch, HMAC, webhooks, GraphQL client, token ref
   queries/*.graphql     GraphQL documents
 apps/dashboard/         merchant dashboard, onboarding, settings
 templates/              Django templates (layouts/, components/, per-app folders)
-static/src/app.css      Tailwind source + UI kit classes  →  static/css/app.css
+assets/tailwind.css     Tailwind source + UI kit classes  →  static/css/app.css
 tests/                  pytest (Shopify mocked with respx)
 ```

@@ -148,12 +148,12 @@ probably need the Billing API. That gets decided in Phase 6.
     `static/css/app.css` is committed, so the app runs without building CSS. If
     the binary can't run on a machine, use
     `make css TAILWIND="npx @tailwindcss/cli@4.1.11"` (needs a `tailwindcss`
-    package resolvable from `static/src`).
+    package resolvable from `assets`).
     Tailwind is told to scan only `templates/` and `apps/` (`source(none)`);
     otherwise it scans `.venv` and hangs.
 
 20. **UI kit = Tailwind component classes** (`btn`, `card`, `badge`, `input`,
-    `table`, `alert`, …) in `static/src/app.css`, plus a few `{% include %}`
+    `table`, `alert`, …) in `assets/tailwind.css`, plus a few `{% include %}`
     components in `templates/components/`. Icons:
     `{% load ui %}{% icon "name" %}` inlines a Lucide SVG.
 

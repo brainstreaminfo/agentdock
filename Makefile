@@ -23,10 +23,10 @@ vendor:  ## Download HTMX/Alpine/Chart.js/Lucide + Tailwind CLI
 	./scripts/vendor.sh
 
 css:  ## Build static/css/app.css once
-	$(TAILWIND) -i static/src/app.css -o static/css/app.css --minify
+	$(TAILWIND) -i assets/tailwind.css -o static/css/app.css --minify
 
 css-watch:  ## Rebuild CSS on every template change
-	$(TAILWIND) -i static/src/app.css -o static/css/app.css --watch
+	$(TAILWIND) -i assets/tailwind.css -o static/css/app.css --watch
 
 run:  ## Web server with auto-reload (http://localhost:8000)
 	$(PY) -m uvicorn config.asgi:application --reload --port 8000
