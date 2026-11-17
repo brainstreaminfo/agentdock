@@ -1,0 +1,64 @@
+# Tools: metafields.get, metafields.set
+
+query OwnerMetafields($ownerId: ID!, $first: Int!, $namespace: String) {
+  node(id: $ownerId) {
+    id
+    ... on HasMetafields {
+      metafields(first: $first, namespace: $namespace) {
+        nodes {
+          id
+          namespace
+          key
+          type
+          value
+          updatedAt
+        }
+      }
+    }
+  }
+}
+
+query OwnerMetafield($ownerId: ID!, $namespace: String!, $key: String!) {
+  node(id: $ownerId) {
+    id
+    ... on HasMetafields {
+      metafield(namespace: $namespace, key: $key) {
+        id
+        namespace
+        key
+        type
+        value
+      }
+    }
+  }
+}
+
+mutation SetMetafields($metafields: [MetafieldsSetInput!]!) {
+  metafieldsSet(metafields: $metafields) {
+    metafields {
+      id
+      namespace
+      key
+      type
+      value
+    }
+    userErrors {
+      field
+      message
+    }
+  }
+}
+
+mutation DeleteMetafields($metafields: [MetafieldIdentifierInput!]!) {
+  metafieldsDelete(metafields: $metafields) {
+    deletedMetafields {
+      key
+      namespace
+      ownerId
+    }
+    userErrors {
+      field
+      message
+    }
+  }
+}

@@ -1,0 +1,182 @@
+# Tools: products.search, products.get, products.update, products.update_seo,
+#        products.update_images_alt, variants.update_price
+
+fragment ProductSummary on Product {
+  id
+  title
+  handle
+  status
+  vendor
+  productType
+  tags
+  totalInventory
+  updatedAt
+  featuredMedia {
+    preview {
+      image {
+        url
+      }
+    }
+  }
+  priceRangeV2 {
+    minVariantPrice {
+      amount
+      currencyCode
+    }
+    maxVariantPrice {
+      amount
+      currencyCode
+    }
+  }
+}
+
+query SearchProducts($first: Int!, $after: String, $query: String, $sortKey: ProductSortKeys, $reverse: Boolean) {
+  products(first: $first, after: $after, query: $query, sortKey: $sortKey, reverse: $reverse) {
+    nodes {
+      ...ProductSummary
+    }
+    pageInfo {
+      hasNextPage
+      endCursor
+    }
+  }
+}
+
+query GetProduct($id: ID!) {
+  product(id: $id) {
+    ...ProductSummary
+    descriptionHtml
+    onlineStoreUrl
+    createdAt
+    seo {
+      title
+      description
+    }
+    options {
+      name
+      values
+    }
+    collections(first: 20) {
+      nodes {
+        id
+        title
+      }
+    }
+    variants(first: 100) {
+      nodes {
+        id
+        title
+        sku
+        price
+        compareAtPrice
+        inventoryQuantity
+        inventoryItem {
+          id
+        }
+      }
+    }
+    media(first: 50) {
+      nodes {
+        ... on MediaImage {
+          id
+          alt
+          image {
+            url
+          }
+        }
+      }
+    }
+  }
+}
+
+# Snapshot for undo of products.update / products.update_seo
+query ProductEditableFields($id: ID!) {
+  product(id: $id) {
+    id
+    title
+    descriptionHtml
+    tags
+    vendor
+    productType
+    status
+    seo {
+      title
+      description
+    }
+  }
+}
+
+mutation UpdateProduct($product: ProductUpdateInput!) {
+  productUpdate(product: $product) {
+    product {
+      id
+      title
+      descriptionHtml
+      tags
+      vendor
+      productType
+      status
+      seo {
+        title
+        description
+      }
+    }
+    userErrors {
+      field
+      message
+    }
+  }
+}
+
+# Snapshot for products.update_images_alt (MediaImage ids)
+query MediaAlts($ids: [ID!]!) {
+  nodes(ids: $ids) {
+    ... on MediaImage {
+      id
+      alt
+    }
+  }
+}
+
+mutation UpdateFilesAlt($files: [FileUpdateInput!]!) {
+  fileUpdate(files: $files) {
+    files {
+      id
+      alt
+    }
+    userErrors {
+      field
+      message
+    }
+  }
+}
+
+# Snapshot for variants.update_price
+query VariantPrices($ids: [ID!]!) {
+  nodes(ids: $ids) {
+    ... on ProductVariant {
+      id
+      title
+      price
+      compareAtPrice
+      product {
+        id
+      }
+    }
+  }
+}
+
+mutation UpdateVariantPrices($productId: ID!, $variants: [ProductVariantsBulkInput!]!) {
+  productVariantsBulkUpdate(productId: $productId, variants: $variants) {
+    productVariants {
+      id
+      title
+      price
+      compareAtPrice
+    }
+    userErrors {
+      field
+      message
+    }
+  }
+}

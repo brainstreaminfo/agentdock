@@ -1,0 +1,30 @@
+{% extends "base.html" %}{% load ui %}
+{% comment %}Agent Studio layout (staff only). Separate from the merchant app.{% endcomment %}
+{% block body %}
+<div class="flex min-h-full">
+  <aside class="fixed inset-y-0 left-0 z-40 hidden w-60 flex-col border-r border-zinc-200 bg-white lg:flex dark:border-zinc-800 dark:bg-zinc-900">
+    <div class="flex h-14 items-center gap-2 px-4 font-semibold">
+      <span class="flex size-7 items-center justify-center rounded-lg bg-zinc-900 text-white dark:bg-white dark:text-zinc-900">{% icon "flask-conical" class="size-4" %}</span>
+      {{ APP_NAME }} Studio
+    </div>
+    <nav class="flex-1 space-y-0.5 px-3">
+      <span class="nav-link nav-link-disabled">{% icon "bot" %} Agents <span class="badge badge-gray ml-auto">Phase 4</span></span>
+      <a href="{% url 'studio:tools' %}" class="nav-link {% nav_active 'studio:tools' 'studio:tool_detail' 'studio:tool_create' 'studio:tool_edit' %}">{% icon "wrench" %} Tool catalog</a>
+      <a href="{% url 'admin:index' %}" class="nav-link">{% icon "shield" %} Django Admin</a>
+    </nav>
+    <div class="space-y-0.5 border-t border-zinc-200 p-3 dark:border-zinc-800">
+      <a href="{% url 'shops:list' %}?all=1" class="nav-link">{% icon "store" %} Merchant app</a>
+      {% include "components/theme_toggle.html" %}
+      <form method="post" action="{% url 'accounts:logout' %}">{% csrf_token %}
+        <button type="submit" class="nav-link w-full">{% icon "log-out" %} Log out</button>
+      </form>
+    </div>
+  </aside>
+  <div class="flex min-w-0 flex-1 flex-col lg:pl-60">
+    <main class="mx-auto w-full max-w-6xl flex-1 px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+      <div class="mb-4">{% include "components/messages.html" %}</div>
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+</div>
+{% endblock %}

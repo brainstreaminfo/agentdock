@@ -1,0 +1,115 @@
+# Tools: inventory.levels, inventory.adjust, inventory.low_stock
+
+fragment ItemLevels on InventoryItem {
+  id
+  sku
+  tracked
+  inventoryLevels(first: 20) {
+    nodes {
+      location {
+        id
+        name
+      }
+      quantities(names: ["available", "on_hand", "committed", "incoming"]) {
+        name
+        quantity
+      }
+    }
+  }
+}
+
+query ProductInventory($id: ID!) {
+  product(id: $id) {
+    id
+    title
+    variants(first: 100) {
+      nodes {
+        id
+        title
+        inventoryItem {
+          ...ItemLevels
+        }
+      }
+    }
+  }
+}
+
+query VariantInventory($id: ID!) {
+  productVariant(id: $id) {
+    id
+    title
+    product {
+      id
+      title
+    }
+    inventoryItem {
+      ...ItemLevels
+    }
+  }
+}
+
+# Current "available" quantity at one location (snapshot / compare-and-swap).
+query ItemAvailable($itemId: ID!, $locationId: ID!) {
+  inventoryItem(id: $itemId) {
+    id
+    tracked
+    variant {
+      title
+      product {
+        title
+      }
+    }
+    inventoryLevel(locationId: $locationId) {
+      location {
+        name
+      }
+      quantities(names: ["available"]) {
+        name
+        quantity
+      }
+    }
+  }
+}
+
+# Since 2026-04 an idempotency key is required: retries never double-adjust.
+mutation AdjustInventory($input: InventoryAdjustQuantitiesInput!, $idempotencyKey: String!) {
+  inventoryAdjustQuantities(input: $input) @idempotent(key: $idempotencyKey) {
+    inventoryAdjustmentGroup {
+      id
+      reason
+      changes {
+        name
+        delta
+        quantityAfterChange
+      }
+    }
+    userErrors {
+      field
+      message
+    }
+  }
+}
+
+query LowStockVariants($first: Int!, $after: String, $query: String!) {
+  productVariants(first: $first, after: $after, query: $query, sortKey: INVENTORY_QUANTITY) {
+    nodes {
+      id
+      title
+      sku
+      inventoryQuantity
+      inventoryItem {
+        id
+        tracked
+      }
+      product {
+        id
+        title
+        status
+      }
+    }
+    pageInfo {
+      hasNextPage
+      endCursor
+    }
+  }
+}

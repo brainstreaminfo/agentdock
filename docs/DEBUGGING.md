@@ -68,13 +68,39 @@ retried automatically, so you'll only see it in logs as
 `ENCRYPTION_KEY` was changed. Put the old key back after the new one
 (`ENCRYPTION_KEY=new,old`), then run `python manage.py rotate_encryption`.
 
-## 4. Useful commands
+## 4. Tools
+
+**Try a tool by hand:** Studio → Tool catalog → pick a tool → **Test** (runs
+against a store you're a member of). The result and a full trace step are shown.
+
+**An agent says a tool failed:** open the run in Django Admin → **Runs**. Each
+tool call is a step with its input, output, duration and error. A Python
+traceback is included if the tool crashed.
+
+**"This store hasn't given the app permission for …"** The tool needs a scope
+the merchant hasn't granted. An alert with a "grant access" link was created
+for them (Django Admin → **Alerts**). Granting goes through OAuth again.
+
+**"Shopify rejected the change: field: message"** Shopify's own validation
+message for a mutation (e.g. title too long). The proposal shows `FAILED` with
+this text in Django Admin → **Action proposals**.
+
+**Approve / undo while debugging:** Django Admin → **Action proposals** → select
+→ "Approve and apply" or "Undo". The snapshot (before/after) is shown on each
+proposal.
+
+**A query broke after changing `SHOPIFY_API_VERSION`:** run `make schema` (fetch
+the new schema), then `make test`. The test names the field or input that changed.
+
+## 5. Useful commands
 
 ```bash
 make check                              # lint + types + tests (what CI runs)
 python manage.py check_shop demo.myshopify.com            # token, scopes, webhooks
 python manage.py check_shop demo.myshopify.com --offline  # without calling Shopify
 python manage.py shell                  # poke at the database in Python
+python manage.py sync_tools             # register built-in tools in the database
+make schema                             # download Shopify's schema for SHOPIFY_API_VERSION
 ```
 
 Django Admin (`/admin/`) actions:

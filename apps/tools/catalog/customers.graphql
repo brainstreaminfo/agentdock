@@ -1,0 +1,110 @@
+# Tools: customers.search, customers.get, customers.add_tags, customers.segments_list
+#
+# Customer data is "protected customer data": names/emails need Level 2 access
+# approved in the Partner Dashboard (development stores work without approval).
+
+fragment CustomerSummary on Customer {
+  id
+  displayName
+  defaultEmailAddress {
+    emailAddress
+  }
+  numberOfOrders
+  amountSpent {
+    amount
+    currencyCode
+  }
+  tags
+  state
+  createdAt
+}
+
+query SearchCustomers($first: Int!, $after: String, $query: String, $sortKey: CustomerSortKeys, $reverse: Boolean) {
+  customers(first: $first, after: $after, query: $query, sortKey: $sortKey, reverse: $reverse) {
+    nodes {
+      ...CustomerSummary
+    }
+    pageInfo {
+      hasNextPage
+      endCursor
+    }
+  }
+}
+
+query GetCustomer($id: ID!) {
+  customer(id: $id) {
+    ...CustomerSummary
+    note
+    lastOrder {
+      id
+      name
+      createdAt
+    }
+    defaultAddress {
+      city
+      province
+      countryCodeV2
+    }
+    orders(first: 10, sortKey: CREATED_AT, reverse: true) {
+      nodes {
+        id
+        name
+        createdAt
+        displayFinancialStatus
+        currentTotalPriceSet {
+          shopMoney {
+            amount
+            currencyCode
+          }
+        }
+      }
+    }
+  }
+}
+
+query CustomerTags($id: ID!) {
+  customer(id: $id) {
+    id
+    displayName
+    tags
+  }
+}
+
+mutation AddTags($id: ID!, $tags: [String!]!) {
+  tagsAdd(id: $id, tags: $tags) {
+    node {
+      id
+    }
+    userErrors {
+      field
+      message
+    }
+  }
+}
+
+mutation RemoveTags($id: ID!, $tags: [String!]!) {
+  tagsRemove(id: $id, tags: $tags) {
+    node {
+      id
+    }
+    userErrors {
+      field
+      message
+    }
+  }
+}
+
+query ListSegments($first: Int!, $after: String, $query: String) {
+  segments(first: $first, after: $after, query: $query) {
+    nodes {
+      id
+      name
+      query
+      creationDate
+    }
+    pageInfo {
+      hasNextPage
+      endCursor
+    }
+  }
+}

@@ -1,0 +1,108 @@
+# Tools: collections.list, collections.get, collections.add_products, collections.create
+#
+# Since 2026-10 product membership is managed through collection "sources"
+# (collectionAddProducts is deprecated). Products we add go into one source
+# owned by this app, titled e.g. "Added by AgentHub".
+
+query ListCollections($first: Int!, $after: String, $query: String) {
+  collections(first: $first, after: $after, query: $query, sortKey: TITLE) {
+    nodes {
+      id
+      title
+      handle
+      updatedAt
+      productsCount {
+        count
+      }
+    }
+    pageInfo {
+      hasNextPage
+      endCursor
+    }
+  }
+}
+
+query GetCollection($id: ID!, $productsFirst: Int!) {
+  collection(id: $id) {
+    id
+    title
+    handle
+    descriptionHtml
+    sortOrder
+    updatedAt
+    seo {
+      title
+      description
+    }
+    productsCount {
+      count
+    }
+    products(first: $productsFirst) {
+      nodes {
+        id
+        title
+        status
+      }
+    }
+  }
+}
+
+# Which of these products are already in the collection + our source (if any).
+query CollectionMembership($id: ID!, $productIds: [ID!]!) {
+  collection(id: $id) {
+    id
+    title
+    sources {
+      id
+      title
+    }
+  }
+  nodes(ids: $productIds) {
+    ... on Product {
+      id
+      title
+      inCollection(id: $id)
+    }
+  }
+}
+
+mutation CollectionAddSource($collection: CollectionUpdateInput!) {
+  collectionUpdate(collection: $collection) {
+    collection {
+      id
+      title
+    }
+    job {
+      id
+      done
+    }
+    userErrors {
+      field
+      message
+    }
+  }
+}
+
+mutation CreateCollection($collection: CollectionCreateInput!) {
+  collectionCreate(collection: $collection) {
+    collection {
+      id
+      title
+      handle
+    }
+    userErrors {
+      field
+      message
+    }
+  }
+}
+
+mutation DeleteCollection($input: CollectionDeleteInput!) {
+  collectionDelete(input: $input) {
+    deletedCollectionId
+    userErrors {
+      field
+      message
+    }
+  }
+}

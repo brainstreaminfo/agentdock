@@ -9,7 +9,7 @@ MANAGE  := $(PY) manage.py
 TAILWIND ?= ./bin/tailwindcss
 
 .PHONY: help install vendor css css-watch run worker beat flower dev migrate migrations \
-        superuser shell test test-fast lint fmt typecheck check logs up down seed
+        superuser shell test test-fast lint fmt typecheck check logs up down seed schema sync-tools
 
 help:  ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-12s\033[0m %s\n", $$1, $$2}'
@@ -42,6 +42,12 @@ flower:  ## Celery monitoring UI (http://localhost:5555)
 
 migrate:  ## Apply database migrations
 	$(MANAGE) migrate
+
+sync-tools:  ## Register built-in tools in the database (also runs on deploy)
+	$(MANAGE) sync_tools
+
+schema:  ## Download Shopify's Admin GraphQL schema for SHOPIFY_API_VERSION
+	$(PY) scripts/update_shopify_schema.py $${SHOPIFY_API_VERSION:-2026-10}
 
 migrations:  ## Create migrations after changing models
 	$(MANAGE) makemigrations

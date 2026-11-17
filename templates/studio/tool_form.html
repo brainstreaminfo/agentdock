@@ -1,0 +1,32 @@
+{% extends "layouts/studio.html" %}{% load ui %}
+{% block title %}{% if creating %}New custom tool{% else %}Edit {{ tool.key }}{% endif %} · Studio{% endblock %}
+{% block content %}
+<a href="{% if tool %}{% url 'studio:tool_detail' tool.key %}{% else %}{% url 'studio:tools' %}{% endif %}" class="mb-4 inline-flex items-center gap-1 text-sm">{% icon "arrow-left" %} Back</a>
+{% include "components/page_header.html" with title=creating|yesno:"New custom GraphQL tool,Edit custom tool" subtitle="One query or mutation. It's checked against Shopify's real schema before saving. Any mutation is automatically marked as changing data and needs merchant approval." %}
+
+<form method="post" class="card card-body space-y-5">{% csrf_token %}
+  {% if form.non_field_errors %}
+  <div class="alert alert-error">{% icon "circle-alert" class="size-4 mt-0.5" %}
+    <ul class="list-disc pl-4">{% for e in form.non_field_errors %}<li>{{ e }}</li>{% endfor %}</ul>
+  </div>
+  {% endif %}
+  <div class="grid gap-5 sm:grid-cols-3">
+    {% for field in form %}{% if field.name in "key name category" %}
+    <div>
+      <label class="label" for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}
+      {% if field.help_text %}<p class="help">{{ field.help_text }}</p>{% endif %}
+      {% for e in field.errors %}<p class="field-error">{{ e }}</p>{% endfor %}
+    </div>
+    {% endif %}{% endfor %}
+  </div>
+  {% for field in form %}{% if field.name not in "key name category enabled" %}
+  <div>
+    <label class="label" for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}
+    {% if field.help_text %}<p class="help">{{ field.help_text }}</p>{% endif %}
+    {% for e in field.errors %}<p class="field-error">{{ e }}</p>{% endfor %}
+  </div>
+  {% endif %}{% endfor %}
+  <label class="flex items-center gap-2 text-sm">{{ form.enabled }} Enabled</label>
+  <div class="flex gap-2"><button class="btn btn-primary" type="submit">Save tool</button></div>
+</form>
+{% endblock %}

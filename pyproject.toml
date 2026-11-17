@@ -23,6 +23,8 @@ dependencies = [
     "whitenoise>=6.8",
     "markdown>=3.7",
     "nh3>=0.2",
+    "graphql-core>=3.3.2",
+    "jsonschema>=4.26.0",
 ]
 
 [dependency-groups]

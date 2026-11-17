@@ -1,0 +1,233 @@
+# Tools: orders.search, orders.get, orders.add_tags, orders.add_note,
+#        orders.timeseries, orders.sales_summary (+ analytics.* use OrdersForStats)
+#
+# Note: without the read_all_orders scope (needs Shopify approval) only the last
+# 60 days of orders are visible. Orders are "protected customer data": the app
+# needs protected-customer-data access approved in the Partner Dashboard.
+
+fragment OrderSummary on Order {
+  id
+  name
+  createdAt
+  cancelledAt
+  displayFinancialStatus
+  displayFulfillmentStatus
+  tags
+  currentSubtotalLineItemsQuantity
+  currentTotalPriceSet {
+    shopMoney {
+      amount
+      currencyCode
+    }
+  }
+  customer {
+    id
+  }
+}
+
+query SearchOrders($first: Int!, $after: String, $query: String) {
+  orders(first: $first, after: $after, query: $query, sortKey: CREATED_AT, reverse: true) {
+    nodes {
+      ...OrderSummary
+    }
+    pageInfo {
+      hasNextPage
+      endCursor
+    }
+  }
+}
+
+query GetOrder($id: ID!) {
+  order(id: $id) {
+    ...OrderSummary
+    note
+    processedAt
+    test
+    sourceName
+    customer {
+      id
+      displayName
+      numberOfOrders
+    }
+    subtotalPriceSet {
+      shopMoney {
+        amount
+        currencyCode
+      }
+    }
+    totalDiscountsSet {
+      shopMoney {
+        amount
+        currencyCode
+      }
+    }
+    totalShippingPriceSet {
+      shopMoney {
+        amount
+        currencyCode
+      }
+    }
+    totalTaxSet {
+      shopMoney {
+        amount
+        currencyCode
+      }
+    }
+    totalRefundedSet {
+      shopMoney {
+        amount
+        currencyCode
+      }
+    }
+    discountCodes
+    lineItems(first: 100) {
+      nodes {
+        title
+        variantTitle
+        quantity
+        sku
+        product {
+          id
+        }
+        variant {
+          id
+        }
+        discountedTotalSet {
+          shopMoney {
+            amount
+            currencyCode
+          }
+        }
+      }
+    }
+  }
+}
+
+query OrderTagsAndNote($id: ID!) {
+  order(id: $id) {
+    id
+    name
+    tags
+    note
+  }
+}
+
+mutation AddTags($id: ID!, $tags: [String!]!) {
+  tagsAdd(id: $id, tags: $tags) {
+    node {
+      id
+    }
+    userErrors {
+      field
+      message
+    }
+  }
+}
+
+mutation RemoveTags($id: ID!, $tags: [String!]!) {
+  tagsRemove(id: $id, tags: $tags) {
+    node {
+      id
+    }
+    userErrors {
+      field
+      message
+    }
+  }
+}
+
+mutation UpdateOrderNote($input: OrderInput!) {
+  orderUpdate(input: $input) {
+    order {
+      id
+      name
+      note
+    }
+    userErrors {
+      field
+      message
+    }
+  }
+}
+
+# Paged reads for statistics (sales summary, timeseries, AOV).
+query OrdersForStats($first: Int!, $after: String, $query: String!) {
+  orders(first: $first, after: $after, query: $query, sortKey: CREATED_AT) {
+    nodes {
+      id
+      createdAt
+      cancelledAt
+      test
+      currentTotalPriceSet {
+        shopMoney {
+          amount
+          currencyCode
+        }
+      }
+      totalDiscountsSet {
+        shopMoney {
+          amount
+        }
+      }
+    }
+    pageInfo {
+      hasNextPage
+      endCursor
+    }
+  }
+}
+
+# Smaller pages because each order includes its line items (query cost).
+query OrderLinesForStats($first: Int!, $after: String, $query: String!) {
+  orders(first: $first, after: $after, query: $query, sortKey: CREATED_AT) {
+    nodes {
+      id
+      cancelledAt
+      test
+      lineItems(first: 30) {
+        nodes {
+          title
+          quantity
+          product {
+            id
+            title
+          }
+          discountedTotalSet {
+            shopMoney {
+              amount
+              currencyCode
+            }
+          }
+        }
+      }
+    }
+    pageInfo {
+      hasNextPage
+      endCursor
+    }
+  }
+}
+
+query OrderCustomersForStats($first: Int!, $after: String, $query: String!) {
+  orders(first: $first, after: $after, query: $query, sortKey: CREATED_AT) {
+    nodes {
+      id
+      cancelledAt
+      test
+      customer {
+        id
+        displayName
+      }
+      currentTotalPriceSet {
+        shopMoney {
+          amount
+          currencyCode
+        }
+      }
+    }
+    pageInfo {
+      hasNextPage
+      endCursor
+    }
+  }
+}

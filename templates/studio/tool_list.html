@@ -1,0 +1,42 @@
+{% extends "layouts/studio.html" %}{% load ui %}
+{% block title %}Tool catalog · Studio{% endblock %}
+{% block content %}
+<div class="mb-6 flex flex-wrap items-end justify-between gap-4">
+  <div>
+    <h1 class="text-2xl font-semibold tracking-tight">Tool catalog</h1>
+    <p class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">Everything agents can do in a store. {{ count }} tool{{ count|pluralize }}.</p>
+  </div>
+  <div class="flex gap-2">
+    <form method="get"><input class="input" type="search" name="q" value="{{ q }}" placeholder="Search tools…"></form>
+    <a href="{% url 'studio:tool_create' %}" class="btn btn-primary">{% icon "plus" %} Custom GraphQL tool</a>
+  </div>
+</div>
+
+<div class="space-y-6">
+{% for category, tools in groups %}
+  <div class="card">
+    <div class="card-header"><h2 class="card-title">{{ category }}</h2><span class="text-xs text-zinc-500">{{ tools|length }}</span></div>
+    <table class="table">
+      <tbody>
+      {% for t in tools %}
+        <tr class="{% if not t.enabled %}opacity-50{% endif %}">
+          <td class="w-1/3">
+            <a href="{% url 'studio:tool_detail' t.key %}" class="font-medium">{{ t.name }}</a>
+            <div class="font-mono text-xs text-zinc-500">{{ t.key }}</div>
+          </td>
+          <td class="hidden text-zinc-600 md:table-cell dark:text-zinc-400">{{ t.description|truncatechars:110 }}</td>
+          <td class="whitespace-nowrap text-right">
+            {% if t.mutating %}<span class="badge badge-yellow">{% icon "pencil" class="size-3" %} write</span>{% else %}<span class="badge badge-green">{% icon "eye" class="size-3" %} read</span>{% endif %}
+            {% if t.kind == "GRAPHQL" %}<span class="badge badge-brand">custom</span>{% endif %}
+            {% if not t.enabled %}<span class="badge badge-gray">off</span>{% endif %}
+          </td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% empty %}
+  {% include "components/empty_state.html" with icon="wrench" title="No tools match" %}
+{% endfor %}
+</div>
+{% endblock %}

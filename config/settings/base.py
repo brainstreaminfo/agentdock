@@ -42,6 +42,10 @@ INSTALLED_APPS = [
     "apps.shops",
     "apps.shopify_app",
     "apps.dashboard",
+    "apps.agents",
+    "apps.runs",
+    "apps.tools",
+    "apps.studio",
 ]
 
 MIDDLEWARE = [

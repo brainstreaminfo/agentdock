@@ -1,0 +1,177 @@
+# Tools: pages.list/get/create/update, blogs.list, articles.list/get/create_draft/update
+
+query ListPages($first: Int!, $after: String, $query: String) {
+  pages(first: $first, after: $after, query: $query, sortKey: UPDATED_AT, reverse: true) {
+    nodes {
+      id
+      title
+      handle
+      isPublished
+      updatedAt
+    }
+    pageInfo {
+      hasNextPage
+      endCursor
+    }
+  }
+}
+
+query GetPage($id: ID!) {
+  page(id: $id) {
+    id
+    title
+    handle
+    body
+    bodySummary
+    isPublished
+    publishedAt
+    updatedAt
+  }
+}
+
+mutation CreatePage($page: PageCreateInput!) {
+  pageCreate(page: $page) {
+    page {
+      id
+      title
+      handle
+      isPublished
+    }
+    userErrors {
+      field
+      message
+    }
+  }
+}
+
+mutation UpdatePage($id: ID!, $page: PageUpdateInput!) {
+  pageUpdate(id: $id, page: $page) {
+    page {
+      id
+      title
+      handle
+      isPublished
+    }
+    userErrors {
+      field
+      message
+    }
+  }
+}
+
+mutation DeletePage($id: ID!) {
+  pageDelete(id: $id) {
+    deletedPageId
+    userErrors {
+      field
+      message
+    }
+  }
+}
+
+query ListBlogs($first: Int!, $after: String) {
+  blogs(first: $first, after: $after, sortKey: TITLE) {
+    nodes {
+      id
+      title
+      handle
+      articlesCount {
+        count
+      }
+    }
+    pageInfo {
+      hasNextPage
+      endCursor
+    }
+  }
+}
+
+query ListArticles($first: Int!, $after: String, $query: String) {
+  articles(first: $first, after: $after, query: $query, sortKey: UPDATED_AT, reverse: true) {
+    nodes {
+      id
+      title
+      handle
+      isPublished
+      publishedAt
+      updatedAt
+      tags
+      blog {
+        id
+        title
+      }
+    }
+    pageInfo {
+      hasNextPage
+      endCursor
+    }
+  }
+}
+
+query GetArticle($id: ID!) {
+  article(id: $id) {
+    id
+    title
+    handle
+    body
+    summary
+    tags
+    isPublished
+    publishedAt
+    updatedAt
+    author {
+      name
+    }
+    blog {
+      id
+      title
+    }
+    image {
+      url
+      altText
+    }
+  }
+}
+
+mutation CreateArticle($article: ArticleCreateInput!) {
+  articleCreate(article: $article) {
+    article {
+      id
+      title
+      handle
+      isPublished
+      blog {
+        id
+      }
+    }
+    userErrors {
+      field
+      message
+    }
+  }
+}
+
+mutation UpdateArticle($id: ID!, $article: ArticleUpdateInput!) {
+  articleUpdate(id: $id, article: $article) {
+    article {
+      id
+      title
+      handle
+      isPublished
+    }
+    userErrors {
+      field
+      message
+    }
+  }
+}
+
+mutation DeleteArticle($id: ID!) {
+  articleDelete(id: $id) {
+    deletedArticleId
+    userErrors {
+      field
+      message
+    }
+  }
+}

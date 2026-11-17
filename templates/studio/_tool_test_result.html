@@ -1,0 +1,16 @@
+{% load ui %}
+{% if form_errors %}
+  <div class="alert alert-error">{% icon "circle-alert" class="size-4 mt-0.5" %}
+    <ul>{% for field, errs in form_errors.items %}{% for e in errs %}<li>{{ e }}</li>{% endfor %}{% endfor %}</ul>
+  </div>
+{% else %}
+  <div class="space-y-2">
+    <div class="flex items-center justify-between text-sm">
+      {% if result.status == "ok" %}<span class="badge badge-green">OK</span>{% elif result.status == "pending_approval" %}<span class="badge badge-yellow">Pending approval</span>{% else %}<span class="badge badge-red">Error</span>{% endif %}
+      <span class="text-xs text-zinc-500">{{ result.duration_ms }} ms · {{ shop }}</span>
+    </div>
+    {% if result.error %}<div class="alert alert-error">{{ result.error }}</div>{% endif %}
+    <pre class="max-h-96 overflow-auto rounded-lg bg-zinc-50 p-3 text-xs dark:bg-zinc-950">{{ result_json }}</pre>
+    {% if step %}<p class="text-xs text-zinc-500">Saved as run step #{{ step.idx }} of run {{ step.run_id }}.</p>{% endif %}
+  </div>
+{% endif %}

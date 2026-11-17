@@ -8,10 +8,16 @@ Shopify app: merchants use our own UI on our domain.
 - Why things are the way they are: [`docs/DECISIONS.md`](docs/DECISIONS.md)
 - When something breaks: [`docs/DEBUGGING.md`](docs/DEBUGGING.md)
 - Putting it on a server: [`docs/DEPLOY.md`](docs/DEPLOY.md)
+- How tools work / add a tool: [`docs/TOOL_CATALOG.md`](docs/TOOL_CATALOG.md)
 
-**Status:** Phase 1 (Foundation) done: OAuth install/launch/uninstall with
-expiring tokens, scope upgrades, magic-link login, store switcher, compliance
-webhooks, UI kit, admin, logging. Next: Phase 2, the Tool Catalog.
+**Status:**
+- Phase 1 (Foundation) done: OAuth with expiring tokens, scope upgrades,
+  magic-link login, store switcher, compliance webhooks, UI kit, logging.
+- Phase 2 (Tool Catalog) done: 50 built-in Shopify tools, an executor with
+  approvals and undo, custom GraphQL tools, and Studio tool pages with a Test
+  button.
+
+Next: Phase 3, the agent runtime.
 
 ## Run it locally
 
@@ -23,6 +29,7 @@ make install          # .venv + dependencies, creates .env from .env.example
 # edit .env: DJANGO_SECRET_KEY, ENCRYPTION_KEY, SHOPIFY_API_KEY/SECRET
 createdb agenthub
 make migrate
+make sync-tools       # register the built-in tools
 make superuser        # staff account for /admin/ (and the Studio later)
 make run              # http://localhost:8000
 make worker           # second terminal: background jobs
@@ -62,7 +69,12 @@ apps/accounts/          User (email login), Membership (OWNER/ADMIN/MEMBER), mag
 apps/shops/             Shop model (encrypted expiring tokens, scopes), store list/switcher
 apps/shopify_app/       OAuth, launch, HMAC, webhooks, GraphQL client, token refresh
   queries/*.graphql     GraphQL documents
-apps/dashboard/         merchant dashboard, onboarding, settings
+apps/dashboard/         merchant dashboard, onboarding, settings, Alert model
+apps/tools/             Tool Catalog: registry, executor (rules + approvals), custom tools
+  catalog/              the 50 built-in tools (<domain>.py + <domain>.graphql)
+apps/runs/              Run, RunStep, ActionProposal, ActionSnapshot
+apps/agents/            ShopMemory, Autonomy (agents arrive in Phase 3)
+apps/studio/            staff-only Studio (/studio/): tool catalog pages
 templates/              Django templates (layouts/, components/, per-app folders)
 assets/tailwind.css     Tailwind source + UI kit classes  →  static/css/app.css
 tests/                  pytest (Shopify mocked with respx)

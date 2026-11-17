@@ -91,8 +91,21 @@ class ShopifyGraphQL:
     def endpoint(self) -> str:
         return f"https://{self.shop.domain}/admin/api/{self.api_version}/graphql.json"
 
-    def execute(self, document: str, variables: dict[str, Any] | None = None) -> GraphQLResult:
-        op = _operation_name(document)
+    def execute(
+        self,
+        document: str,
+        variables: dict[str, Any] | None = None,
+        *,
+        operation_name: str | None = None,
+    ) -> GraphQLResult:
+        """
+        Run a query/mutation. If `document` contains several operations (our tool
+        catalog keeps one .graphql file per domain), pass `operation_name`.
+        """
+        op = operation_name or _operation_name(document)
+        body: dict[str, Any] = {"query": document, "variables": variables or {}}
+        if operation_name:
+            body["operationName"] = operation_name
         force_refresh = False
         last_error: Exception | None = None
 
@@ -102,7 +115,7 @@ class ShopifyGraphQL:
             try:
                 resp = self._http.post(
                     self.endpoint,
-                    json={"query": document, "variables": variables or {}},
+                    json=body,
                     headers={"X-Shopify-Access-Token": token, "Content-Type": "application/json"},
                 )
             except httpx.HTTPError as exc:

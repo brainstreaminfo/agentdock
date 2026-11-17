@@ -163,3 +163,125 @@ probably need the Billing API. That gets decided in Phase 6.
 22. **Default models** in `ALLOWED_MODELS`: `claude-sonnet-5-5`,
     `claude-opus-5-5`, `claude-haiku-5-5`. Change them in `.env` without code
     changes.
+
+---
+
+## Phase 2 — Tool Catalog (2026-11-17)
+
+### Shopify API findings (checked against the real 2026-10 schema)
+
+23. **Shopify's Admin schema is stored in the repo** (`apps/shopify_app/schema/admin-2026-10.graphql.gz`,
+    124 KB). It's downloaded with `make schema` from the public proxy behind
+    shopify.dev's GraphiQL. Three checks use it:
+    - a test validates every catalog `.graphql` file;
+    - the test fake (`tests/tools/conftest.py`) checks every variable a tool
+      sends against the real input types: fields, enums and required values;
+    - the Studio validates custom GraphQL tools before saving them.
+
+    So queries and mutation inputs are verified without a real store. **When you
+    bump `SHOPIFY_API_VERSION`, run `make schema` and `make test`**; deprecated or
+    renamed fields then show up as test failures.
+
+24. **Collections: products are added through "sources", not
+    `collectionAddProducts`.** `collectionAddProducts` is deprecated in 2026-10.
+    `collections.add_products` adds products to a source called "Added by
+    AgentHub" on the collection, creating it the first time. Undo removes only
+    the products we added. Products that were already in the collection are
+    skipped and never removed.
+
+25. **Inventory changes send an idempotency key and use compare-and-swap.** Since
+    2026-04, `inventoryAdjustQuantities` requires `@idempotent(key:)`. We use the
+    approval's UUID (and `<uuid>-undo` for undo), so a retried request never
+    adjusts stock twice. `changeFromQuantity` makes the change fail if stock moved
+    after we read it.
+
+26. **Analytics are computed from orders, not ShopifyQL.** `shopifyqlQuery` exists
+    in 2026-10, but it needs `read_reports` and **Level 2 protected customer data**
+    approval, which a new app won't have. Our approach needs only `read_orders`.
+    Limits:
+    - at most 2,500 orders per call (`truncated: true` is returned beyond that);
+    - only the last 60 days of orders without `read_all_orders` (which needs
+      approval from Shopify);
+    - line items are capped at 30 per order for `analytics.top_products`.
+
+    Totals use each order's *current* total in the shop's currency: after refunds
+    and edits, including tax and shipping. Cancelled and test orders are excluded.
+    Days are counted in the shop's timezone.
+
+27. **Protected customer data.** Orders and customers are "protected customer
+    data". Before launch, apply in the Partner Dashboard for Level 1 (orders,
+    customers) and Level 2 (names and emails, used by `customers.*`,
+    `orders.get` and `analytics.top_customers`). Development stores work
+    without approval. Added to the launch checklist for Phase 6.
+
+28. **Pages and articles use `read_content` / `write_content`.** Those scopes
+    cover both pages and blogs; using `*_online_store_pages` too would add a
+    second scope for nothing. **`read_price_rules` was removed in 2026-10**;
+    discounts use `read_discounts` / `write_discounts`.
+
+### Design
+
+29. **One `.graphql` file per domain** (`catalog/products.graphql` next to
+    `catalog/products.py`), holding several named operations. The client sends
+    `operationName`. Everything a domain sends to Shopify is in one readable file.
+
+30. **Tools return plain dicts, not Pydantic output models.** Inputs are strict
+    Pydantic models (unknown fields rejected, so AI typos are caught). Outputs are
+    dicts, which keeps 50 tools readable. The executor makes them JSON-safe.
+
+31. **Every mutating tool has preview, snapshot and undo:**
+    - `preview` shows the approver a before/after diff;
+    - `snapshot` saves the data just before applying;
+    - `undo` restores it, and touches only the fields that were changed.
+
+    Creations are undone by deleting what was created (collection, page, article,
+    discount). A test makes undo mandatory for every built-in mutating tool.
+    Custom GraphQL tools can't be undone; the Studio shows a "No undo" badge.
+
+32. **AUTO mode still creates an `ActionProposal`** (status `APPLIED`,
+    `auto_applied=True`) with a snapshot. Every change, approved or automatic,
+    appears in the same history and can be undone.
+
+33. **Approval lives in `apps/tools/executor.py`** (`apply_proposal`,
+    `reject_proposal`, `undo_proposal`). It's next to the executor because it
+    runs the same tool code. The proposal row is locked (`SELECT … FOR UPDATE`)
+    and must still be PENDING, so a double click applies once. Django Admin has
+    Approve and Undo actions for debugging, until the merchant approvals page
+    exists in Phase 5.
+
+34. **Models created early**, because the executor needs them now:
+    - `Run`, `RunStep`, `ActionProposal`, `ActionSnapshot` (`apps/runs`);
+    - `Alert` (`apps/dashboard`);
+    - `ShopMemory` and `Autonomy` (`apps/agents`).
+
+    Phase 3 adds agent/installation links with new migrations.
+
+35. **The stored trace is redacted.** RunStep input and output have emails and
+    phone numbers masked, the same as logs. This keeps customer data out of our
+    database (helps `customers/redact`). The cost is that traces show `[email]`
+    instead of the address.
+
+36. **Prompt-injection guard:** every tool result is sent to the AI behind a fixed
+    notice that store text is data, never instructions. Control characters are
+    stripped, strings are capped at 20,000 characters and results at 100,000.
+    Phase 3 repeats the rule in the system prompt.
+
+37. **Metafield tools check scopes at run time.** The scope needed depends on the
+    owner (product → `products`, customer → `customers`, …), so `metafields.*`
+    declare no static scopes and call `ctx.require_scopes()`. A missing scope gives
+    the same error and alert as rule 1. The Studio notes this on the tool page.
+
+38. **`web.fetch_url` is off by default** (spec). When enabled, it only fetches
+    public internet addresses: every redirect hop is resolved and private,
+    loopback and link-local IPs are refused, which blocks SSRF to cloud metadata
+    and internal services. Limits: 1 MB download, 20,000 characters of text,
+    text content types only.
+
+39. **The Studio Test button only targets stores the staff member belongs to.**
+    Connect your own dev store first. Mutating tools need a "this changes data"
+    checkbox and are then applied directly (no approval step). Each test creates
+    a `Run` with trigger `TOOL_TEST`, so it has a full trace.
+
+40. **`sync_tools` runs on every deploy** (pre-deploy command). It never
+    overwrites the `enabled` flag, disables code tools that were removed, and
+    refuses a custom tool that reuses a built-in key.

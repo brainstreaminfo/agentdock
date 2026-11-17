@@ -1,0 +1,31 @@
+# Tools: files.list
+
+query ListFiles($first: Int!, $after: String, $query: String) {
+  files(first: $first, after: $after, query: $query, sortKey: CREATED_AT, reverse: true) {
+    nodes {
+      __typename
+      id
+      alt
+      createdAt
+      fileStatus
+      ... on MediaImage {
+        image {
+          url
+          width
+          height
+        }
+      }
+      ... on GenericFile {
+        url
+        mimeType
+      }
+      ... on Video {
+        filename
+      }
+    }
+    pageInfo {
+      hasNextPage
+      endCursor
+    }
+  }
+}

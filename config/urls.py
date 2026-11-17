@@ -13,6 +13,7 @@ urlpatterns = [
     path("", include("apps.accounts.urls")),
     path("", include("apps.shops.urls")),
     path("shopify/", include("apps.shopify_app.urls")),
+    path("studio/", include("apps.studio.urls")),
     path("s/<int:shop_id>/", include("apps.dashboard.urls")),
 ]
 

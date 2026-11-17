@@ -1,0 +1,39 @@
+# Tools: shop.info, shop.policies
+
+query ShopInfo {
+  shop {
+    id
+    name
+    email
+    contactEmail
+    myshopifyDomain
+    primaryDomain {
+      url
+    }
+    currencyCode
+    enabledPresentmentCurrencies
+    ianaTimezone
+    weightUnit
+    plan {
+      publicDisplayName
+      partnerDevelopment
+    }
+    billingAddress {
+      countryCodeV2
+      city
+    }
+  }
+}
+
+query ShopPolicies {
+  shop {
+    shopPolicies {
+      id
+      type
+      title
+      url
+      body
+      updatedAt
+    }
+  }
+}

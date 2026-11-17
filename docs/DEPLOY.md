@@ -78,8 +78,9 @@ DEFAULT_MODEL=claude-sonnet-5-5
 ## 4. Configure the web service
 
 **web → Settings:**
-- **Pre-deploy command:** `python manage.py migrate --noinput`
-  (applies database changes before each new version goes live).
+- **Pre-deploy command:** `python manage.py migrate --noinput && python manage.py sync_tools`
+  (applies database changes and registers new built-in tools before each new
+  version goes live).
 - **Healthcheck path:** `/healthz/`
 - **Networking → Custom domain:** `app.yourdomain.com`. Railway shows a CNAME
   record; add it at your DNS provider. HTTPS is automatic.
@@ -143,7 +144,7 @@ python manage.py createsuperuser
 ## 9. Everyday: shipping a change
 
 `git push` to `master` → Railway rebuilds and redeploys all three services. Migrations
-run automatically (pre-deploy command). In each service's **Settings**, turn on
+and the tool sync run automatically (pre-deploy command). In each service's **Settings**, turn on
 **"Wait for CI"**, so a push whose GitHub checks fail is never deployed.
 
 Logs: Railway → service → **Logs** (JSON lines; search e.g. `shop_id=4` or a
@@ -157,9 +158,9 @@ The same image works anywhere that runs Docker:
 
 - **Render:** a Web Service (Docker) + two Background Workers with the commands
   above + Render Postgres + Render Key Value (Redis). Set the pre-deploy command to
-  `python manage.py migrate --noinput`.
+  `python manage.py migrate --noinput && python manage.py sync_tools`.
 - **Fly.io:** one app with three `[processes]` (web/worker/beat) in `fly.toml`,
-  plus Fly Postgres and Upstash Redis. Run migrations as `release_command`.
+  plus Fly Postgres and Upstash Redis. Run `migrate` and `sync_tools` as `release_command`.
 - **Own VPS:** `docker compose` with a production compose file, plus Caddy or
   nginx for HTTPS. More work to maintain; only worth it at scale.
 
