@@ -1,0 +1,22 @@
+# Basic shop details + the scopes Shopify says we currently have.
+# Used at install (OAuth callback), by the `sync_shop` task and `check_shop`.
+query ShopInfo {
+  shop {
+    id
+    name
+    email
+    myshopifyDomain
+    currencyCode
+    ianaTimezone
+    plan {
+      publicDisplayName
+      partnerDevelopment
+      shopifyPlus
+    }
+  }
+  currentAppInstallation {
+    accessScopes {
+      handle
+    }
+  }
+}

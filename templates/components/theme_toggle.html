@@ -1,0 +1,6 @@
+{% load ui %}<button type="button" class="nav-link w-full"
+  x-data="{ dark: document.documentElement.classList.contains('dark') }"
+  @click="dark = !dark; document.documentElement.classList.toggle('dark', dark); try { localStorage.setItem('theme', dark ? 'dark' : 'light') } catch (e) {}">
+  <span x-show="!dark">{% icon "moon" %}</span><span x-cloak x-show="dark">{% icon "sun" %}</span>
+  <span x-text="dark ? 'Light mode' : 'Dark mode'">Dark mode</span>
+</button>

@@ -1,0 +1,44 @@
+{% extends "layouts/app.html" %}{% load ui %}
+{% block title %}Settings · {{ current_shop }}{% endblock %}
+{% block content %}
+{% include "components/page_header.html" with title="Settings" subtitle="Your store connection, permissions and team." %}
+
+<div class="space-y-6">
+  <div class="card">
+    <div class="card-header"><h2 class="card-title">Store</h2></div>
+    <dl class="card-body grid gap-4 text-sm sm:grid-cols-2">
+      <div><dt class="text-zinc-500">Name</dt><dd class="font-medium">{{ current_shop.name|default:"—" }}</dd></div>
+      <div><dt class="text-zinc-500">Address</dt><dd class="font-medium">{{ current_shop.domain }}</dd></div>
+      <div><dt class="text-zinc-500">Shopify plan</dt><dd class="font-medium">{{ current_shop.plan_name|default:"—" }}{% if current_shop.is_dev_store %} <span class="badge badge-yellow">Development store</span>{% endif %}</dd></div>
+      <div><dt class="text-zinc-500">Timezone · currency</dt><dd class="font-medium">{{ current_shop.timezone }} · {{ current_shop.currency|default:"—" }}</dd></div>
+      <div><dt class="text-zinc-500">Connected since</dt><dd class="font-medium">{{ current_shop.installed_at|date:"j M Y" }}</dd></div>
+      <div><dt class="text-zinc-500">Last synced</dt><dd class="font-medium">{{ current_shop.last_synced_at|timesince|default:"never" }}{% if current_shop.last_synced_at %} ago{% endif %}</dd></div>
+    </dl>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><h2 class="card-title">Permissions granted to {{ APP_NAME }}</h2></div>
+    {% if permissions %}
+    <ul class="card-body space-y-2 text-sm">
+      {% for p in permissions %}
+      <li class="flex items-center gap-2">{% icon "check" class="size-4 text-emerald-600" %} {{ p.label }} <code class="ml-auto text-xs text-zinc-500">{{ p.scope }}</code></li>
+      {% endfor %}
+    </ul>
+    {% else %}
+      {% include "components/empty_state.html" with icon="lock" title="No permissions recorded" %}
+    {% endif %}
+  </div>
+
+  <div class="card">
+    <div class="card-header"><h2 class="card-title">Team</h2></div>
+    <table class="table">
+      <thead><tr><th>Email</th><th>Role</th></tr></thead>
+      <tbody>
+        {% for m in members %}
+        <tr><td>{{ m.user.email }}</td><td><span class="badge badge-gray">{{ m.get_role_display }}</span></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

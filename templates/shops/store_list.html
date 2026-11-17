@@ -1,0 +1,28 @@
+{% extends "layouts/auth.html" %}{% load ui %}
+{% block title %}Your stores · {{ APP_NAME }}{% endblock %}
+{% block content %}
+<div>
+  <h1 class="text-xl font-semibold">Your stores</h1>
+  <p class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">Pick a store to open.</p>
+</div>
+{% if shops %}
+<ul class="divide-y divide-zinc-200 rounded-lg border border-zinc-200 dark:divide-zinc-800 dark:border-zinc-800">
+  {% for shop in shops %}
+  <li>
+    <a href="{% url 'dashboard:home' shop.pk %}" class="flex items-center justify-between px-4 py-3 text-zinc-900 no-underline hover:bg-zinc-50 hover:no-underline dark:text-zinc-100 dark:hover:bg-zinc-800">
+      <span class="flex items-center gap-3">{% icon "store" class="size-4 text-zinc-400" %}
+        <span><span class="block text-sm font-medium">{{ shop }}</span><span class="block text-xs text-zinc-500">{{ shop.domain }}</span></span>
+      </span>
+      {% icon "chevron-right" class="size-4 text-zinc-400" %}
+    </a>
+  </li>
+  {% endfor %}
+</ul>
+{% else %}
+  {% include "components/empty_state.html" with icon="store" title="No stores connected yet" text="Connect your Shopify store to get started." %}
+{% endif %}
+<a href="{% url 'shops:connect' %}" class="btn btn-secondary w-full">{% icon "plus" %} Connect another store</a>
+<form method="post" action="{% url 'accounts:logout' %}" class="text-center">{% csrf_token %}
+  <button class="text-xs text-zinc-500 hover:underline" type="submit">Log out ({{ user.email }})</button>
+</form>
+{% endblock %}

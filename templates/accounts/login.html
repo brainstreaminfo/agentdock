@@ -1,0 +1,17 @@
+{% extends "layouts/auth.html" %}
+{% block title %}Log in · {{ APP_NAME }}{% endblock %}
+{% block content %}
+<div>
+  <h1 class="text-xl font-semibold">Log in</h1>
+  <p class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">We'll email you a one-time login link.</p>
+</div>
+<form method="post" class="space-y-4">{% csrf_token %}
+  <div>
+    <label class="label" for="{{ form.email.id_for_label }}">Email</label>
+    <input class="input" type="email" name="email" id="{{ form.email.id_for_label }}" value="{{ form.email.value|default:'' }}" required autofocus>
+    {% for e in form.email.errors %}<p class="field-error">{{ e }}</p>{% endfor %}
+  </div>
+  <button class="btn btn-primary w-full" type="submit">Email me a login link</button>
+</form>
+<p class="text-xs text-zinc-500 dark:text-zinc-400">New here? Install {{ APP_NAME }} from the Shopify App Store, or open it from your Shopify Admin.</p>
+{% endblock %}

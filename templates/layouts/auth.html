@@ -1,0 +1,16 @@
+{% extends "base.html" %}{% load ui %}
+{% block body %}
+<div class="flex min-h-full flex-col items-center justify-center px-4 py-12">
+  <div class="mb-8 flex items-center gap-2 text-lg font-semibold">
+    <span class="flex size-8 items-center justify-center rounded-lg bg-brand-600 text-white">{% icon "bot" class="size-5" %}</span>
+    {{ APP_NAME }}
+  </div>
+  <div class="card w-full max-w-md">
+    <div class="card-body space-y-5">
+      {% include "components/messages.html" %}
+      {% block content %}{% endblock %}
+    </div>
+  </div>
+  {% block below %}{% endblock %}
+</div>
+{% endblock %}

@@ -1,0 +1,8 @@
+{% load ui %}{# Usage: {% include "components/stat_card.html" with label="Runs today" value=0 icon="activity" %} #}
+<div class="card card-body">
+  <div class="flex items-center justify-between text-sm text-zinc-500 dark:text-zinc-400">
+    <span>{{ label }}</span>{% icon icon|default:"activity" class="size-4" %}
+  </div>
+  <div class="mt-2 text-2xl font-semibold">{{ value|default:"—" }}</div>
+  {% if hint %}<div class="mt-1 text-xs text-zinc-500">{{ hint }}</div>{% endif %}
+</div>

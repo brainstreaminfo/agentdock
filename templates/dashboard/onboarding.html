@@ -1,0 +1,19 @@
+{% extends "layouts/app.html" %}{% load ui %}
+{% block title %}Welcome · {{ current_shop }}{% endblock %}
+{% block content %}
+<div class="card mx-auto max-w-2xl">
+  <div class="card-body space-y-6">
+    <div>
+      <span class="mb-3 flex size-10 items-center justify-center rounded-full bg-brand-50 text-brand-600 dark:bg-brand-700/30">{% icon "party-popper" class="size-5" %}</span>
+      <h1 class="text-2xl font-semibold">Welcome to {{ APP_NAME }}, {{ current_shop }}!</h1>
+      <p class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">Your store is connected. Here's how it works:</p>
+    </div>
+    <ol class="space-y-4 text-sm">
+      <li class="flex gap-3"><span class="badge badge-brand">1</span><span><strong>Pick agents</strong> from the Marketplace. Each one does a specific job in your store.</span></li>
+      <li class="flex gap-3"><span class="badge badge-brand">2</span><span><strong>Approve access</strong>. An agent only asks for the Shopify permissions it needs.</span></li>
+      <li class="flex gap-3"><span class="badge badge-brand">3</span><span><strong>Stay in control</strong>. By default, every change an agent proposes waits for your approval.</span></li>
+    </ol>
+    <a href="{% url 'dashboard:home' current_shop.pk %}" class="btn btn-primary">Go to dashboard {% icon "arrow-right" %}</a>
+  </div>
+</div>
+{% endblock %}

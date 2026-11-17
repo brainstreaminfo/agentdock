@@ -1,0 +1,23 @@
+{% extends "layouts/app.html" %}{% load ui %}
+{% block title %}Dashboard · {{ current_shop }}{% endblock %}
+{% block content %}
+{% include "components/page_header.html" with title="Dashboard" subtitle="An overview of your AI agents and what they've been doing." %}
+
+<div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+  {% include "components/stat_card.html" with label="Installed agents" value="0" icon="bot" %}
+  {% include "components/stat_card.html" with label="Runs this month" value="0" icon="activity" %}
+  {% include "components/stat_card.html" with label="Pending approvals" value="0" icon="circle-check-big" %}
+  {% include "components/stat_card.html" with label="Open alerts" value="0" icon="bell" %}
+</div>
+
+<div class="mt-6 grid gap-6 lg:grid-cols-2">
+  <div class="card">
+    <div class="card-header"><h2 class="card-title">Pending approvals</h2></div>
+    {% include "components/empty_state.html" with icon="circle-check-big" title="Nothing to approve" text="When an agent wants to change something in your store, it will appear here first." %}
+  </div>
+  <div class="card">
+    <div class="card-header"><h2 class="card-title">Recent runs</h2></div>
+    {% include "components/empty_state.html" with icon="activity" title="No runs yet" text="Install an agent from the Marketplace to get started." %}
+  </div>
+</div>
+{% endblock %}

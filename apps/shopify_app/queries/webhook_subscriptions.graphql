@@ -1,0 +1,11 @@
+# Lists the webhook subscriptions registered for this app on the shop
+# (used by `manage.py check_shop`).
+query WebhookSubscriptions {
+  webhookSubscriptions(first: 100) {
+    nodes {
+      id
+      topic
+      uri
+    }
+  }
+}

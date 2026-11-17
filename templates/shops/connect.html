@@ -1,0 +1,18 @@
+{% extends "layouts/auth.html" %}
+{% block title %}Connect a store · {{ APP_NAME }}{% endblock %}
+{% block content %}
+<div>
+  <h1 class="text-xl font-semibold">Connect a Shopify store</h1>
+  <p class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">You'll be sent to Shopify to approve access, then brought back here.</p>
+</div>
+<form method="post" class="space-y-4">{% csrf_token %}
+  <div>
+    <label class="label" for="id_shop">{{ form.shop.label }}</label>
+    <input class="input" type="text" name="shop" id="id_shop" value="{{ form.shop.value|default:'' }}" placeholder="your-store.myshopify.com" required autofocus>
+    <p class="help">{{ form.shop.help_text }}</p>
+    {% for e in form.shop.errors %}<p class="field-error">{{ e }}</p>{% endfor %}
+  </div>
+  <button class="btn btn-primary w-full" type="submit">Continue to Shopify</button>
+</form>
+<a href="{% url 'shops:list' %}?all=1" class="btn btn-ghost w-full">Cancel</a>
+{% endblock %}

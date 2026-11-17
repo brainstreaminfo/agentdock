@@ -1,0 +1,10 @@
+{% extends "layouts/auth.html" %}{% load ui %}
+{% block title %}Check your email · {{ APP_NAME }}{% endblock %}
+{% block content %}
+<div class="text-center">
+  <span class="mx-auto mb-3 flex size-10 items-center justify-center rounded-full bg-brand-50 text-brand-600 dark:bg-brand-700/30">{% icon "mail" class="size-5" %}</span>
+  <h1 class="text-xl font-semibold">Check your email</h1>
+  <p class="mt-2 text-sm text-zinc-500 dark:text-zinc-400">If an account exists for <strong>{{ email }}</strong>, a login link is on its way. It works once and expires in 15 minutes.</p>
+</div>
+<a href="{% url 'accounts:login' %}" class="btn btn-secondary w-full">Use a different email</a>
+{% endblock %}

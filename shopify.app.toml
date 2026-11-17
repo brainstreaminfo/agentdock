@@ -1,0 +1,29 @@
+# Shopify app configuration. Deploy with the Shopify CLI:  shopify app deploy
+# Replace <domain> with your real domain and fill in client_id.
+
+name = "AgentHub"
+client_id = ""
+application_url = "https://app.<domain>.com/shopify/launch/"
+# NON-embedded: the merchant leaves Shopify Admin and lands on our own UI.
+embedded = false
+
+[access_scopes]
+# Minimal base scope; agents request more when installed (spec §5.6).
+scopes = "read_products"
+# We run the authorization code grant ourselves (token exchange is embedded-only),
+# so Shopify must NOT manage the install. See docs/DECISIONS.md.
+use_legacy_install_flow = true
+
+[auth]
+redirect_urls = ["https://app.<domain>.com/shopify/callback/"]
+
+[webhooks]
+api_version = "2026-10"
+
+  # App lifecycle + shop details, and the mandatory compliance (GDPR) topics.
+  # Agent event topics (orders/create, …) are registered per shop via the Admin
+  # API in Phase 5, because they depend on which agents a shop installs.
+  [[webhooks.subscriptions]]
+  topics = ["app/uninstalled", "app/scopes_update", "shop/update"]
+  compliance_topics = ["customers/data_request", "customers/redact", "shop/redact"]
+  uri = "https://app.<domain>.com/shopify/webhooks/"

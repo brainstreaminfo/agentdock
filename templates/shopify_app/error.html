@@ -1,0 +1,11 @@
+{% extends "layouts/auth.html" %}{% load ui %}
+{% block title %}{{ title }} · {{ APP_NAME }}{% endblock %}
+{% block content %}
+<div class="text-center">
+  <span class="mx-auto mb-3 flex size-10 items-center justify-center rounded-full bg-red-50 text-red-600 dark:bg-red-950">{% icon "triangle-alert" class="size-5" %}</span>
+  <h1 class="text-xl font-semibold">{{ title }}</h1>
+  <p class="mt-2 text-sm text-zinc-500 dark:text-zinc-400">{{ message }}</p>
+</div>
+{% if retry_url %}<a href="{{ retry_url }}" class="btn btn-primary w-full">Try again</a>{% endif %}
+<a href="{% url 'home' %}" class="btn btn-secondary w-full">Go to {{ APP_NAME }}</a>
+{% endblock %}

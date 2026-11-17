@@ -1,0 +1,24 @@
+name: CI
+on: [push, pull_request]
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env: { POSTGRES_USER: postgres, POSTGRES_PASSWORD: postgres, POSTGRES_DB: agenthub }
+        ports: ["5432:5432"]
+        options: --health-cmd pg_isready --health-interval 5s --health-retries 10
+    env:
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/agenthub
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v4
+      - run: uv sync --frozen
+      - name: No Polaris / App Bridge (non-embedded app)
+        run: ./scripts/check_no_embedded.sh
+      - run: .venv/bin/ruff check .
+      - run: .venv/bin/ruff format --check .
+      - run: .venv/bin/mypy apps config
+      - run: .venv/bin/pytest

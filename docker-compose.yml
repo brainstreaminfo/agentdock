@@ -1,0 +1,46 @@
+# Full local stack:  make up   (then http://localhost:8000, Flower on :5555)
+x-app: &app
+  build: .
+  env_file: .env
+  environment:
+    DATABASE_URL: postgres://agenthub:agenthub@postgres:5432/agenthub
+    REDIS_URL: redis://redis:6379/0
+    DJANGO_SETTINGS_MODULE: config.settings.dev
+  volumes: [".:/app"]
+  depends_on:
+    postgres: { condition: service_healthy }
+    redis: { condition: service_healthy }
+
+services:
+  postgres:
+    image: postgres:16
+    environment: { POSTGRES_USER: agenthub, POSTGRES_PASSWORD: agenthub, POSTGRES_DB: agenthub }
+    ports: ["5432:5432"]
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck: { test: ["CMD", "pg_isready", "-U", "agenthub"], interval: 5s, retries: 10 }
+
+  redis:
+    image: redis:7
+    ports: ["6379:6379"]
+    healthcheck: { test: ["CMD", "redis-cli", "ping"], interval: 5s, retries: 10 }
+
+  web:
+    <<: *app
+    command: sh -c "python manage.py migrate && uvicorn config.asgi:application --host 0.0.0.0 --port 8000 --reload"
+    ports: ["8000:8000"]
+
+  worker:
+    <<: *app
+    command: celery -A config worker -l info
+
+  beat:
+    <<: *app
+    command: celery -A config beat -l info
+
+  flower:
+    <<: *app
+    command: celery -A config flower --port=5555
+    ports: ["5555:5555"]
+
+volumes:
+  pgdata:

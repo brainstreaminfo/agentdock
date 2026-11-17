@@ -1,0 +1,77 @@
+{% extends "base.html" %}{% load ui %}
+{% comment %}
+  Merchant app layout: sidebar (store switcher + navigation) and main content.
+  Pages set `{% block content %}`. `current_shop` comes from @require_shop_access.
+{% endcomment %}
+{% block body %}
+<div class="flex min-h-full" x-data="{ sidebar: false }">
+
+  {# Mobile backdrop #}
+  <div x-cloak x-show="sidebar" @click="sidebar = false" class="fixed inset-0 z-30 bg-black/40 lg:hidden"></div>
+
+  <aside :class="sidebar ? 'translate-x-0' : '-translate-x-full'"
+         class="fixed inset-y-0 left-0 z-40 flex w-64 flex-col border-r border-zinc-200 bg-white transition-transform lg:translate-x-0 dark:border-zinc-800 dark:bg-zinc-900">
+    <div class="flex h-14 items-center gap-2 px-4 font-semibold">
+      <span class="flex size-7 items-center justify-center rounded-lg bg-brand-600 text-white">{% icon "bot" class="size-4" %}</span>
+      {{ APP_NAME }}
+    </div>
+
+    {# Store switcher #}
+    {% if current_shop %}
+    <div class="px-3 pb-3" x-data="{ open: false }" @click.outside="open = false">
+      <button type="button" @click="open = !open" class="btn btn-secondary w-full justify-between">
+        <span class="flex min-w-0 items-center gap-2">{% icon "store" %}<span class="truncate">{{ current_shop }}</span></span>
+        {% icon "chevrons-up-down" class="size-4 text-zinc-400" %}
+      </button>
+      <div x-cloak x-show="open" class="card absolute z-50 mt-1 w-56 p-1">
+        {% for s in my_shops %}
+          <a href="{% url 'dashboard:home' s.pk %}" class="nav-link {% if s.pk == current_shop.pk %}nav-link-active{% endif %}">
+            {% icon "store" %}<span class="truncate">{{ s }}</span>
+          </a>
+        {% endfor %}
+        <div class="my-1 border-t border-zinc-200 dark:border-zinc-800"></div>
+        <a href="{% url 'shops:connect' %}" class="nav-link">{% icon "plus" %} Connect another store</a>
+        <a href="{% url 'shops:list' %}?all=1" class="nav-link">{% icon "layout-list" %} All stores</a>
+      </div>
+    </div>
+
+    <nav class="flex-1 space-y-0.5 overflow-y-auto px-3">
+      <a href="{% url 'dashboard:home' current_shop.pk %}" class="nav-link {% nav_active 'dashboard:home' %}">{% icon "layout-dashboard" %} Dashboard</a>
+      {# Placeholders for later phases, so the final navigation is visible now. #}
+      <span class="nav-link nav-link-disabled">{% icon "messages-square" %} Chat <span class="badge badge-gray ml-auto">Soon</span></span>
+      <span class="nav-link nav-link-disabled">{% icon "store" %} Marketplace <span class="badge badge-gray ml-auto">Soon</span></span>
+      <span class="nav-link nav-link-disabled">{% icon "bot" %} My agents <span class="badge badge-gray ml-auto">Soon</span></span>
+      <span class="nav-link nav-link-disabled">{% icon "circle-check-big" %} Approvals <span class="badge badge-gray ml-auto">Soon</span></span>
+      <span class="nav-link nav-link-disabled">{% icon "activity" %} Runs <span class="badge badge-gray ml-auto">Soon</span></span>
+      <span class="nav-link nav-link-disabled">{% icon "bell" %} Alerts <span class="badge badge-gray ml-auto">Soon</span></span>
+      <span class="nav-link nav-link-disabled">{% icon "brain" %} Brand memory <span class="badge badge-gray ml-auto">Soon</span></span>
+      <a href="{% url 'dashboard:settings' current_shop.pk %}" class="nav-link {% nav_active 'dashboard:settings' %}">{% icon "settings" %} Settings</a>
+    </nav>
+    {% else %}
+    <div class="flex-1"></div>
+    {% endif %}
+
+    <div class="space-y-0.5 border-t border-zinc-200 p-3 dark:border-zinc-800">
+      {% if user.is_staff %}
+        <a href="{% url 'admin:index' %}" class="nav-link">{% icon "shield" %} Django Admin</a>
+      {% endif %}
+      {% include "components/theme_toggle.html" %}
+      <form method="post" action="{% url 'accounts:logout' %}">{% csrf_token %}
+        <button type="submit" class="nav-link w-full">{% icon "log-out" %} Log out</button>
+      </form>
+      <p class="truncate px-3 pt-1 text-xs text-zinc-500" title="{{ user.email }}">{{ user.email }}</p>
+    </div>
+  </aside>
+
+  <div class="flex min-w-0 flex-1 flex-col lg:pl-64">
+    <header class="sticky top-0 z-20 flex h-14 items-center gap-3 border-b border-zinc-200 bg-white/80 px-4 backdrop-blur lg:hidden dark:border-zinc-800 dark:bg-zinc-900/80">
+      <button type="button" class="btn btn-ghost btn-sm" @click="sidebar = true" aria-label="Open menu">{% icon "menu" class="size-5" %}</button>
+      <span class="truncate font-medium">{{ current_shop|default:APP_NAME }}</span>
+    </header>
+    <main class="mx-auto w-full max-w-6xl flex-1 px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+      <div class="mb-4">{% include "components/messages.html" %}</div>
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+</div>
+{% endblock %}

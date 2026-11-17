@@ -1,0 +1,93 @@
+[project]
+name = "agenthub"
+version = "0.1.0"
+description = "AI Agent Platform for Shopify — Agent Studio + Agent Marketplace"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "django>=5.2,<6.0",
+    "uvicorn[standard]>=0.32",
+    "psycopg[binary]>=3.2",
+    "dj-database-url>=2.3",
+    "django-environ>=0.11",
+    "celery[redis]>=5.4",
+    "django-celery-beat>=2.7",
+    "flower>=2.0",
+    "redis>=5.2",
+    "httpx>=0.28",
+    "cryptography>=44.0",
+    "pydantic>=2.10",
+    "structlog>=24.4",
+    "sentry-sdk[django,celery]>=2.19",
+    "anthropic>=0.40",
+    "whitenoise>=6.8",
+    "markdown>=3.7",
+    "nh3>=0.2",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3",
+    "pytest-django>=4.9",
+    "pytest-cov>=6.0",
+    "factory-boy>=3.3",
+    "respx>=0.22",
+    "ruff>=0.8",
+    "mypy>=1.13",
+    "django-stubs[compatible-mypy]>=5.1",
+    "celery-types>=0.22",
+    "pre-commit>=4.0",
+    "django-debug-toolbar>=4.4",
+    "playwright>=1.49",
+    "pytest-playwright>=0.6",
+]
+
+[tool.uv]
+package = false
+
+# ---------------------------------------------------------------- ruff
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+extend-exclude = ["**/migrations/*.py"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "DJ", "S", "SIM", "RUF"]
+ignore = [
+    "S101",   # assert is fine in tests
+    "RUF012", # mutable class attrs are normal in Django Meta/admin
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S105", "S106", "S311"]
+"config/settings/*.py" = ["S105"]
+
+# ---------------------------------------------------------------- mypy
+[tool.mypy]
+python_version = "3.12"
+plugins = ["mypy_django_plugin.main"]
+strict_optional = true
+warn_unused_ignores = true
+warn_redundant_casts = true
+disallow_untyped_defs = true
+ignore_missing_imports = true
+exclude = ["migrations/", "\\.venv/"]
+
+[[tool.mypy.overrides]]
+module = "tests.*"
+disallow_untyped_defs = false
+
+[tool.django-stubs]
+django_settings_module = "config.settings.test"
+
+# ---------------------------------------------------------------- pytest
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "config.settings.test"
+python_files = ["test_*.py"]
+testpaths = ["tests"]
+addopts = "-ra --strict-markers -p no:cacheprovider"
+markers = ["e2e: browser tests with Playwright (need a running server)"]
+filterwarnings = [
+    "ignore::DeprecationWarning:celery.*",
+    "ignore:No directory at:UserWarning",  # whitenoise: staticfiles/ only exists after collectstatic
+]
