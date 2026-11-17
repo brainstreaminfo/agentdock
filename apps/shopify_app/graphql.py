@@ -103,6 +103,12 @@ class ShopifyGraphQL:
         catalog keeps one .graphql file per domain), pass `operation_name`.
         """
         op = operation_name or _operation_name(document)
+        if self.shop.is_demo:
+            # Never send anything to Shopify for a pretend store (create_demo_shop).
+            raise ShopifyGraphQLError(
+                f"{op}: this is a demo store that isn't connected to Shopify, "
+                "so store data isn't available."
+            )
         body: dict[str, Any] = {"query": document, "variables": variables or {}}
         if operation_name:
             body["operationName"] = operation_name

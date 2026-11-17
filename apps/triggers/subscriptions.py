@@ -71,7 +71,7 @@ class SyncReport:
 
 def sync_webhook_subscriptions(shop: Shop, client: ShopifyGraphQL | None = None) -> SyncReport:
     report = SyncReport()
-    if not shop.is_installed:
+    if not shop.is_installed or shop.is_demo:
         return report
     client = client or ShopifyGraphQL(shop)
     uri = webhook_uri()

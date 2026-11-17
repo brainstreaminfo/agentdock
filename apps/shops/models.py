@@ -11,6 +11,9 @@ from apps.core import crypto
 from apps.core.models import TimeStampedModel
 from apps.shopify_app import scopes as scope_utils
 
+# `plan_name` of pretend stores made by `manage.py create_demo_shop` (no Shopify).
+DEMO_PLAN = "Demo (no Shopify)"
+
 
 class ShopQuerySet(models.QuerySet["Shop"]):
     def installed(self) -> ShopQuerySet:
@@ -60,6 +63,11 @@ class Shop(TimeStampedModel):
     @property
     def is_installed(self) -> bool:
         return self.uninstalled_at is None and bool(self.access_token_enc)
+
+    @property
+    def is_demo(self) -> bool:
+        """A pretend store for testing without Shopify: no Shopify call is ever made."""
+        return self.plan_name == DEMO_PLAN
 
     @property
     def admin_url(self) -> str:

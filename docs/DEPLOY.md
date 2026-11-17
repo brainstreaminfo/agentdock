@@ -18,6 +18,30 @@ All three app services use the same Docker image and the same environment variab
 
 ---
 
+## 0. Testing without a Shopify app (standalone)
+
+You can deploy and try everything before registering the Shopify app:
+
+1. Follow sections 1–5 and 7, but skip 6. Set placeholders, because production
+   refuses to start without them:
+   `SHOPIFY_API_KEY=not-registered-yet`, `SHOPIFY_API_SECRET=not-registered-yet`.
+   `RESEND_API_KEY` can stay empty if you only log in with your staff password.
+2. After `createsuperuser`, in `railway ssh --service web`:
+   ```bash
+   python manage.py seed_agent_templates
+   python manage.py create_demo_shop --email <your superuser email> --timezone Asia/Kolkata
+   ```
+3. Log in at `/admin/` with your password, then open `/stores/`: the demo store is
+   there and you are its owner. The Studio is at `/studio/`.
+
+The demo store has every permission, so installs never go to Shopify, and the
+app never sends it anything. Tools that need store data (products, orders…)
+answer "demo store isn't connected to Shopify"; the agent says so in chat.
+Chat, My Team, brand memory, charts and tables, alerts, reply drafts,
+schedules, Run now, run traces, the playground and Studio tests all work.
+When you register the Shopify app later, do section 6 and replace the
+placeholder key/secret; delete the demo store in Django Admin → Shops.
+
 ## 1. Before you start (one time)
 
 1. **A domain** where you can add DNS records, e.g. `app.yourdomain.com`.
